@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elpriset Just Nu</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --black: #000000;
+            --white: #FFFFFF;
+            --green: #009A33;
+            --light-green: #B2FFBF;
+            --darker-gray: #191919;
+            --dark-gray: #353230;
+            --gray: #CDC8C2;
+            --light-gray: #F2EFEC;
+            --red: #D73333;
+            --light-red: #FFBBBB;
+            --yellow: #FFD15F;
+            --light-yellow: #FFE39B;
+        }
+    </style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--light-gray);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: var(--white);
+            border: 1px solid var(--gray);
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        h1 {
+            color: var(--black);
+            font-size: 20px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select {
+            padding: 10px 12px;
+            border: 1px solid var(--black);
+            background: var(--white);
+            cursor: pointer;
+            font-size: 14px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .settings-btn {
+            padding: 10px 16px;
+            background: var(--black);
+            color: var(--white);
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .settings-btn:active {
+            background: var(--darker-gray);
+        }
+
+        .current-price {
+            background: var(--black);
+            color: var(--white);
+            padding: 20px 15px;
+            margin-bottom: 10px;
+        }
+
+        .current-price h2 {
+            font-size: 16px;
+        }
+
+        .price-display {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .current-price p {
+            font-size: 13px;
+        }
+
+        .chart-container {
+            background: var(--white);
+            border: 1px solid var(--gray);
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .chart-container h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .recommendations {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .recommendation-card {
+            background: var(--white);
+            border: 1px solid var(--gray);
+            padding: 15px;
+        }
+
+        .recommendation-card h3 {
+            color: var(--black);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .time-slot {
+            background: var(--light-gray);
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 3px solid var(--gray);
+            font-size: 14px;
+        }
+
+        .time-slot.best {
+            background: var(--light-green);
+            border-left: 3px solid var(--green);
+        }
+
+        .time-slot.worst {
+            background: var(--light-red);
+            border-left: 3px solid var(--red);
+        }
+
+        .savings {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--green);
+            margin-top: 10px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 180px !important;
+        }
+
+        @media (min-width: 640px) {
+            body {
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            select {
+                flex: 0;
+            }
+
+            .recommendations {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+
+            canvas {
+                height: 200px !important;
+            }
+
+            .chart-container, .current-price, .recommendation-card {
+                padding: 20px;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--white);
+            width: 95%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+        }
+
+        .appliance-item {
+            border: 1px solid var(--gray);
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .appliance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .appliance-header > div:first-child {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .appliance-header > div:last-child {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .appliance-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .appliance-controls label {
+            font-size: 13px;
+            color: var(--dark-gray);
+        }
+
+        .appliance-controls input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--gray);
+            margin-top: 4px;
+            font-size: 16px;
+        }
+
+        @media (min-width: 480px) {
+            .appliance-controls {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .modal-content {
+                padding: 30px;
+            }
+
+            .modal-header h2 {
+                font-size: 20px;
+            }
+        }
+
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray);
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: var(--white);
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: var(--green);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .add-appliance-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--black);
+            color: var(--white);
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .add-appliance-btn:active {
+            background: var(--darker-gray);
+        }
+
+        .remove-btn {
+            background: var(--red);
+            color: var(--white);
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .remove-btn:active {
+            background: var(--darker-gray);
+        }
+
+        .preset-btn {
+            padding: 12px;
+            background: var(--white);
+            border: 1px solid var(--gray);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            touch-action: manipulation;
+        }
+
+        .preset-btn:active {
+            background: var(--light-gray);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Elpriset Just Nu</h1>
+            <div class="header-controls">
+                <select id="region">
+                    <option value="SE1">SE1 - Luleå</option>
+                    <option value="SE2">SE2 - Sundsvall</option>
+                    <option value="SE3" selected>SE3 - Stockholm</option>
+                    <option value="SE4">SE4 - Malmö</option>
+                </select>
+                <button class="settings-btn" id="settingsBtn">
+                    <i data-lucide="settings"></i>
+                    Inställningar
+                </button>
+            </div>
+        </div>
+
+        <div class="current-price" id="currentPrice">
+            <h2>Nuvarande pris</h2>
+            <div class="price-display" id="priceDisplay">--</div>
+            <p>öre/kWh (exkl. moms och skatter)</p>
+        </div>
+
+        <div class="chart-container">
+            <h2>Dagens prisutveckling</h2>
+            <canvas id="priceChart"></canvas>
+        </div>
+
+        <div class="recommendations" id="recommendations">
+            <div class="recommendation-card">
+                <h3>
+                    <i data-lucide="loader" class="icon"></i>
+                    Laddar...
+                </h3>
+                <div>Hämtar elprisdata...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Apparater</h2>
+                <button class="close-btn" id="closeModal">
+                    <i data-lucide="x" size="24"></i>
+                </button>
+            </div>
+            <div id="appliancesList"></div>
+            <button class="add-appliance-btn" id="addAppliance">
+                <i data-lucide="plus"></i>
+                Lägg till apparat
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

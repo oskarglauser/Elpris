@@ -93,9 +93,9 @@ export function renderApp() {
 
     <!-- Hero Section -->
     <div id="currentPrice" class="transition-colors duration-500" style="background: #000000;">
-      <div class="px-6 py-6 text-center text-white">
+      <div class="px-6 py-3 text-center text-white">
         <div id="priceDisplay" class="text-h1">--</div>
-        <p class="text-xs mt-1 opacity-75">öre/kWh just nu</p>
+        <div id="priceUnit" class="text-sm opacity-75 mt-1">öre/kWh</div>
       </div>
     </div>
 
@@ -258,7 +258,7 @@ function updateCurrentPrice() {
 
   if (currentData) {
     const priceDisplay = document.getElementById('priceDisplay');
-    priceDisplay.textContent = `${currentData.price} öre`;
+    priceDisplay.textContent = currentData.price;
 
     const currentPriceCard = document.getElementById('currentPrice');
     const avgPrice = priceData.reduce((sum, item) => sum + item.price, 0) / priceData.length;
@@ -285,7 +285,7 @@ function updateChart() {
   const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-  const filteredData = priceData.filter(item => {
+  let filteredData = priceData.filter(item => {
     const itemDate = new Date(item.time.getFullYear(), item.time.getMonth(), item.time.getDate());
     if (selectedDay === 'today') {
       return itemDate.getTime() === todayDate.getTime();
@@ -293,6 +293,12 @@ function updateChart() {
       return itemDate.getTime() === tomorrowDate.getTime();
     }
   });
+
+  // For today, only show from 1 hour ago onwards
+  if (selectedDay === 'today') {
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    filteredData = filteredData.filter(item => item.time >= oneHourAgo);
+  }
 
   if (filteredData.length === 0) {
     if (chart) {

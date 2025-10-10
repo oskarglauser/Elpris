@@ -100,14 +100,14 @@ export function renderApp() {
     </div>
 
     <!-- Graph Section -->
-    <div class="py-8 bg-white">
+    <div class="py-4 bg-white">
       <div id="chartContainer" class="relative h-[250px] sm:h-[240px] md:h-[280px]">
         <canvas id="priceChart"></canvas>
       </div>
       <div id="noDataMessage" class="hidden p-8 text-center">
         <p class="text-el-gray-dark">Priser för imorgon är inte tillgängliga än</p>
       </div>
-      <div class="flex justify-center mt-4">
+      <div class="flex justify-center mt-2">
         <div id="dayToggle" class="inline-flex rounded bg-[#F2EFEC] p-1">
           <button data-day="today" class="px-4 py-1.5 text-caption rounded transition-colors bg-white text-[#000000]">
             Idag
@@ -120,7 +120,7 @@ export function renderApp() {
     </div>
 
     <!-- Recommendations Section -->
-    <div class="px-4 py-8">
+    <div class="px-4 py-2 pb-8">
       <div class="max-w-4xl mx-auto">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-h2">Dina enheter</h2>
@@ -129,7 +129,7 @@ export function renderApp() {
           </button>
         </div>
         <div id="yearlySavings" class="mb-3"></div>
-        <div id="recommendations" class="space-y-3">
+        <div id="recommendations" class="bg-white rounded">
           <div class="flex items-center gap-3 p-4 bg-white rounded">
             <i data-lucide="loader" class="w-5 h-5"></i>
             <div>Laddar...</div>
@@ -658,8 +658,16 @@ function updateRecommendations() {
     yearlySavingsDiv.innerHTML = '';
   }
 
+  // Add header row with labels
+  html += `
+    <div class="px-4 py-3 flex items-center justify-between border-b border-[#F2EFEC]">
+      <div class="text-xs text-[#353230] opacity-60">Enhet</div>
+      <div class="text-xs text-[#353230] opacity-60">Besparing</div>
+    </div>
+  `;
+
   // Add device recommendations
-  enabledAppliances.forEach(appliance => {
+  enabledAppliances.forEach((appliance, idx) => {
     const slots = Math.ceil((appliance.hours * 60) / 15);
     const timeWindow = appliance.timeWindow || { start: 0, end: 24 };
     const bestSlots = findBestTimeSlots(slots, timeWindow, filteredPriceData);
@@ -667,31 +675,84 @@ function updateRecommendations() {
     if (bestSlots.length === 0) return;
 
     const bestAvg = bestSlots.reduce((sum, slot) => sum + slot.price, 0) / bestSlots.length;
-    const savings = ((dailyAvgPrice - bestAvg) * appliance.kWh) / 100;
+    const savingsKr = ((dailyAvgPrice - bestAvg) * appliance.kWh) / 100;
+    const savingsOre = Math.round(savingsKr * 100);
+    const savingsDisplay = savingsKr >= 1 ? `+${savingsKr.toFixed(0)} kr` : `+${savingsOre} öre`;
 
     const bestStart = formatTime(bestSlots[0].time);
     const bestEnd = formatTime(new Date(bestSlots[bestSlots.length - 1].time.getTime() + 15 * 60000));
 
     html += `
-      <div class="flex items-center justify-between p-3 bg-white rounded">
-        <div class="flex items-center gap-2 flex-1">
-          <i data-lucide="${appliance.icon}" class="w-5 h-5 text-el-gray-dark"></i>
-          <div>
-            <div class="text-caption">${appliance.name}</div>
-            <div class="text-xs text-el-gray-dark">${appliance.kWh} kWh · ${appliance.hours}h</div>
+      <div class="border-b border-[#F2EFEC] last:border-0">
+        <button onclick="window.toggleDeviceDetails(${idx})" class="w-full px-4 py-2 flex items-center gap-2 hover:bg-[#F2EFEC]/30 transition-colors">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <div class="text-caption text-[#000000]">${appliance.name}</div>
+            <div class="text-xs text-[#353230] opacity-60 truncate">${bestStart}–${bestEnd}</div>
           </div>
-        </div>
-        <div class="text-right">
-          <div class="text-body">${bestStart} – ${bestEnd}</div>
-          <div class="text-xs text-el-green">Spara ${savings.toFixed(0)} kr</div>
+          <div class="flex items-center gap-2 shrink-0">
+            <div class="text-caption text-[#000000]">${savingsDisplay}</div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-[#353230] opacity-40"></i>
+          </div>
+        </button>
+        <div id="deviceDetails${idx}" class="hidden px-4 pb-2 text-xs text-[#353230] space-y-1">
+          <div class="flex justify-between">
+            <span class="opacity-60">Förbrukning</span>
+            <span>${appliance.kWh} kWh · ${appliance.hours}h</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="opacity-60">Snittpris</span>
+            <span>${bestAvg.toFixed(1)} öre/kWh</span>
+          </div>
         </div>
       </div>
     `;
   });
 
+  // Add yearly savings summary at bottom
+  if (totalSavings > 0) {
+    const totalYearly = totalSavings * 365;
+    const dailySavings = totalSavings.toFixed(2);
+    html += `
+      <div class="border-t-1 border-[#333333] mt-2">
+        <button onclick="window.toggleYearlySavingsDetails()" class="w-full px-4 pt-3 pb-3 flex items-center justify-between hover:bg-[#F2EFEC]/30 transition-colors">
+          <div class="text-body font-medium text-[#000000]">Årlig besparing</div>
+          <div class="flex items-center gap-2 shrink-0">
+            <div class="text-body font-medium text-[#009A33]">${totalYearly.toFixed(0)} kr</div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-[#353230] opacity-40"></i>
+          </div>
+        </button>
+        <div id="yearlySavingsDetails" class="hidden px-4 pb-3 text-xs text-[#353230] space-y-1">
+          <div class="flex justify-between">
+            <span class="opacity-60">Daglig besparing</span>
+            <span>${dailySavings} kr</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="opacity-60">Beräkning</span>
+            <span>${dailySavings} kr × 365 dagar</span>
+          </div>
+        </div>
+      </div>
+    `;
+    yearlySavingsDiv.innerHTML = '';
+  }
+
   recommendationsDiv.innerHTML = html;
   createIcons({ icons });
 }
+
+window.toggleDeviceDetails = function(idx) {
+  const details = document.getElementById(`deviceDetails${idx}`);
+  if (details) {
+    details.classList.toggle('hidden');
+  }
+};
+
+window.toggleYearlySavingsDetails = function() {
+  const details = document.getElementById('yearlySavingsDetails');
+  if (details) {
+    details.classList.toggle('hidden');
+  }
+};
 
 function openSettings() {
   renderAppliances();

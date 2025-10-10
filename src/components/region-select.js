@@ -6,10 +6,10 @@ export function createRegionSelect(selectedRegion, onRegionChange) {
 
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'flex items-center gap-2 px-4 py-2.5 bg-[#F2EFEC] text-[#000000] rounded text-body hover:bg-[#CDC8C2] transition-colors min-h-[44px]';
+  button.className = 'flex items-center gap-1 px-2 py-1.5 bg-[#F2EFEC] text-[#000000] rounded text-caption hover:bg-[#CDC8C2] transition-colors';
   button.innerHTML = `
     <span id="selected-region">${selectedRegion}</span>
-    <i data-lucide="chevron-down" class="h-4 w-4"></i>
+    <i data-lucide="chevron-down" class="h-3 w-3"></i>
   `;
 
   const dropdown = document.createElement('div');

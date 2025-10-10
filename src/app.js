@@ -95,7 +95,7 @@ export function renderApp() {
     <div id="currentPrice" class="transition-colors duration-500" style="background: #000000;">
       <div class="px-6 py-3 text-center text-white">
         <div id="priceDisplay" class="text-h1">--</div>
-        <div id="priceUnit" class="text-sm opacity-75 mt-1">öre/kWh</div>
+        <div id="priceUnit" class="text-sm opacity-75 mt-1">öre/kWh just nu</div>
       </div>
     </div>
 
@@ -112,7 +112,7 @@ export function renderApp() {
           <button data-day="today" class="px-4 py-1.5 text-caption rounded transition-colors bg-white text-[#000000]">
             Idag
           </button>
-          <button data-day="tomorrow" class="px-4 py-1.5 text-caption rounded transition-colors hover:bg-white/50 text-[#353230]">
+          <button data-day="tomorrow" class="px-4 py-1.5 text-caption rounded transition-colors hover:bg-white/50 text-[#000000]">
             Imorgon
           </button>
         </div>
@@ -177,10 +177,10 @@ function initializeApp() {
       dayToggle.querySelectorAll('button').forEach(b => {
         if (b.dataset.day === selectedDay) {
           b.classList.add('bg-white', 'text-[#000000]');
-          b.classList.remove('hover:bg-white/50', 'text-[#353230]');
+          b.classList.remove('hover:bg-white/50', 'text-[#000000]');
         } else {
           b.classList.remove('bg-white', 'text-[#000000]');
-          b.classList.add('hover:bg-white/50', 'text-[#353230]');
+          b.classList.add('hover:bg-white/50', 'text-[#000000]');
         }
       });
 
@@ -491,7 +491,7 @@ function updateChart() {
           max: Math.ceil(maxPrice * 1.05),
           ticks: {
             font: { size: 11, weight: 'normal' },
-            color: '#353230',
+            color: '#000000',
             padding: 8,
             maxTicksLimit: 5
           },
@@ -505,7 +505,7 @@ function updateChart() {
         x: {
           ticks: {
             font: { size: 11, weight: 'normal' },
-            color: '#353230',
+            color: '#000000',
             maxRotation: 0,
             minRotation: 0,
             autoSkip: true,
@@ -601,23 +601,20 @@ function updateRecommendations() {
 
     // Add header row with labels
     html += `
-      <div class="px-4 py-3 flex items-center justify-between border-b border-[#F2EFEC]">
-        <div class="text-xs text-[#353230] opacity-60">Enhet</div>
-        <div class="text-xs text-[#353230] opacity-60">Besparing</div>
+      <div class="px-4 py-3 grid grid-cols-3 gap-3 items-center border-b border-[#F2EFEC]">
+        <div class="text-xs text-[#000000] opacity-60">Enhet</div>
+        <div class="text-xs text-[#000000] opacity-60 text-center">Billigast tid</div>
+        <div class="text-xs text-[#000000] opacity-60 text-right">Besparing</div>
       </div>
     `;
 
     enabledAppliances.forEach((appliance, idx) => {
       html += `
         <div class="border-b border-[#F2EFEC] last:border-0">
-          <div class="w-full px-4 py-2 flex items-center gap-2 opacity-50">
-            <div class="flex items-center gap-2 flex-1 min-w-0">
-              <div class="text-caption text-[#000000]">${appliance.name}</div>
-              <div class="text-xs text-[#353230] opacity-60">—</div>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <div class="text-caption text-[#000000]">—</div>
-            </div>
+          <div class="w-full px-4 py-2 grid grid-cols-3 gap-3 items-center opacity-50">
+            <div class="text-caption text-[#000000]">${appliance.name}</div>
+            <div class="text-xs text-[#000000] opacity-60 text-center">—</div>
+            <div class="text-caption text-[#000000] text-right">—</div>
           </div>
         </div>
       `;
@@ -625,7 +622,7 @@ function updateRecommendations() {
 
     html += `
       <div class="px-4 py-4 text-center">
-        <div class="text-xs text-[#353230] opacity-60">Priser för imorgon är inte tillgängliga än</div>
+        <div class="text-xs text-[#000000] opacity-60">Priser för imorgon är inte tillgängliga än</div>
       </div>
     `;
 
@@ -658,7 +655,7 @@ function updateRecommendations() {
     const totalYearly = totalSavings * 365;
     yearlySavingsDiv.innerHTML = `
       <div class="flex items-center justify-between">
-        <div class="text-caption text-[#353230]">Årlig besparing</div>
+        <div class="text-caption text-[#000000]">Årlig besparing</div>
         <div class="text-h2 text-[#009A33]">${totalYearly.toFixed(0)} kr</div>
       </div>
     `;
@@ -668,9 +665,10 @@ function updateRecommendations() {
 
   // Add header row with labels
   html += `
-    <div class="px-4 py-3 flex items-center justify-between border-b border-[#F2EFEC]">
-      <div class="text-xs text-[#353230] opacity-60">Enhet</div>
-      <div class="text-xs text-[#353230] opacity-60">Besparing</div>
+    <div class="px-4 py-3 grid grid-cols-3 gap-3 items-center border-b border-[#F2EFEC]">
+      <div class="text-xs text-[#000000] opacity-60">Enhet</div>
+      <div class="text-xs text-[#000000] opacity-60 text-center">Optimal tid</div>
+      <div class="text-xs text-[#000000] opacity-60 text-right">Besparing</div>
     </div>
   `;
 
@@ -692,17 +690,15 @@ function updateRecommendations() {
 
     html += `
       <div class="border-b border-[#F2EFEC] last:border-0">
-        <button onclick="window.toggleDeviceDetails(${idx})" class="w-full px-4 py-2 flex items-center gap-2 hover:bg-[#F2EFEC]/30 transition-colors">
-          <div class="flex items-center gap-2 flex-1 min-w-0">
-            <div class="text-caption text-[#000000]">${appliance.name}</div>
-            <div class="text-xs text-[#353230] opacity-60 truncate">${bestStart}–${bestEnd}</div>
+        <button onclick="window.toggleDeviceDetails(${idx})" class="w-full px-4 py-2 grid grid-cols-3 gap-3 items-center hover:bg-[#F2EFEC]/30 transition-colors text-left">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="text-caption text-[#000000] truncate">${appliance.name}</div>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-[#000000] opacity-40 shrink-0"></i>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <div class="text-caption text-[#000000]">${savingsDisplay}</div>
-            <i data-lucide="chevron-down" class="w-4 h-4 text-[#353230] opacity-40"></i>
-          </div>
+          <div class="text-xs text-[#000000] opacity-60 text-center whitespace-nowrap">${bestStart}–${bestEnd}</div>
+          <div class="text-caption text-[#000000] text-right">${savingsDisplay}</div>
         </button>
-        <div id="deviceDetails${idx}" class="hidden px-4 pb-2 text-xs text-[#353230] space-y-1">
+        <div id="deviceDetails${idx}" class="hidden px-4 pb-2 text-xs text-[#000000] space-y-1">
           <div class="flex justify-between">
             <span class="opacity-60">Förbrukning</span>
             <span>${appliance.kWh} kWh · ${appliance.hours}h</span>
@@ -721,15 +717,15 @@ function updateRecommendations() {
     const totalYearly = totalSavings * 365;
     const dailySavings = totalSavings.toFixed(2);
     html += `
-      <div class="border-t-1 border-[#333333] mt-2">
+      <div class="border-t border-[#F2EFEC] mt-2">
         <button onclick="window.toggleYearlySavingsDetails()" class="w-full px-4 pt-3 pb-3 flex items-center justify-between hover:bg-[#F2EFEC]/30 transition-colors">
-          <div class="text-body font-medium text-[#000000]">Årlig besparing</div>
+          <div class="text-body text-[#000000]">Årlig besparing</div>
           <div class="flex items-center gap-2 shrink-0">
-            <div class="text-body font-medium text-[#009A33]">${totalYearly.toFixed(0)} kr</div>
-            <i data-lucide="chevron-down" class="w-4 h-4 text-[#353230] opacity-40"></i>
+            <div class="text-body text-[#009A33]">${totalYearly.toFixed(0)} kr</div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-[#000000] opacity-40"></i>
           </div>
         </button>
-        <div id="yearlySavingsDetails" class="hidden px-4 pb-3 text-xs text-[#353230] space-y-2">
+        <div id="yearlySavingsDetails" class="hidden px-4 pb-3 text-xs text-[#000000] space-y-2">
           <div class="flex justify-between">
             <span class="opacity-60">Daglig besparing</span>
             <span>${dailySavings} kr</span>
@@ -775,22 +771,104 @@ function openSettings() {
 function renderAppliances() {
   const list = document.getElementById('appliancesList');
   list.innerHTML = appliances.map(app => `
-    <div class="flex items-center justify-between p-4 bg-[#F2EFEC] rounded" data-app-id="${app.id}">
-      <div class="flex items-center gap-3">
-        <i data-lucide="${app.icon}" class="w-6 h-6"></i>
-        <div class="text-body">${app.name}</div>
+    <div class="bg-[#F2EFEC] rounded" data-app-id="${app.id}">
+      <div class="flex items-center justify-between p-4">
+        <div class="flex items-center gap-3">
+          <i data-lucide="${app.icon}" class="w-6 h-6"></i>
+          <div class="text-body">${app.name}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            onclick="window.toggleApplianceSettings(${app.id})"
+            class="p-2 hover:bg-[#CDC8C2] rounded transition-colors">
+            <i data-lucide="settings" class="w-5 h-5 text-[#000000]"></i>
+          </button>
+          <button
+            onclick="window.toggleAppliance(${app.id})"
+            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors ${app.enabled ? 'bg-[#009A33]' : 'bg-[#CDC8C2]'}"
+            role="switch"
+            aria-checked="${app.enabled}">
+            <span class="pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${app.enabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+          </button>
+        </div>
       </div>
-      <button
-        onclick="window.toggleAppliance(${app.id})"
-        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors ${app.enabled ? 'bg-[#009A33]' : 'bg-[#CDC8C2]'}"
-        role="switch"
-        aria-checked="${app.enabled}">
-        <span class="pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${app.enabled ? 'translate-x-5' : 'translate-x-0'}"></span>
-      </button>
+      <div id="settingsOptions${app.id}" class="hidden px-4 pb-4 space-y-3 border-t border-[#CDC8C2] pt-3">
+        <div>
+          <label class="text-xs text-[#000000] opacity-75 mb-1 block">Förbrukning (kWh)</label>
+          <input
+            type="number"
+            value="${app.kWh}"
+            onchange="window.updateApplianceField(${app.id}, 'kWh', parseFloat(this.value))"
+            class="w-full px-3 py-2 bg-white rounded text-caption border border-[#CDC8C2]"
+            step="0.1"
+            min="0"
+          />
+        </div>
+        <div>
+          <label class="text-xs text-[#000000] opacity-75 mb-1 block">Tid (timmar)</label>
+          <input
+            type="number"
+            value="${app.hours}"
+            onchange="window.updateApplianceField(${app.id}, 'hours', parseFloat(this.value))"
+            class="w-full px-3 py-2 bg-white rounded text-caption border border-[#CDC8C2]"
+            step="0.5"
+            min="0.5"
+          />
+        </div>
+        <div>
+          <label class="text-xs text-[#000000] opacity-75 mb-1 block">Tidsfönster</label>
+          <div class="flex gap-2">
+            <input
+              type="number"
+              value="${app.timeWindow.start}"
+              onchange="window.updateTimeWindow(${app.id}, 'start', parseInt(this.value))"
+              class="flex-1 px-3 py-2 bg-white rounded text-caption border border-[#CDC8C2]"
+              min="0"
+              max="23"
+              placeholder="Från"
+            />
+            <span class="flex items-center text-caption">–</span>
+            <input
+              type="number"
+              value="${app.timeWindow.end}"
+              onchange="window.updateTimeWindow(${app.id}, 'end', parseInt(this.value))"
+              class="flex-1 px-3 py-2 bg-white rounded text-caption border border-[#CDC8C2]"
+              min="0"
+              max="24"
+              placeholder="Till"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   `).join('');
   createIcons({ icons });
 }
+
+window.toggleApplianceSettings = function(id) {
+  const settings = document.getElementById(`settingsOptions${id}`);
+  if (settings) {
+    settings.classList.toggle('hidden');
+  }
+};
+
+window.updateApplianceField = function(id, field, value) {
+  const app = appliances.find(a => a.id === id);
+  if (app) {
+    app[field] = value;
+    saveAppliances();
+    updateRecommendations();
+  }
+};
+
+window.updateTimeWindow = function(id, field, value) {
+  const app = appliances.find(a => a.id === id);
+  if (app) {
+    app.timeWindow[field] = value;
+    saveAppliances();
+    updateRecommendations();
+  }
+};
 
 window.toggleAppliance = function(id) {
   const app = appliances.find(a => a.id === id);

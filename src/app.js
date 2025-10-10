@@ -729,14 +729,19 @@ function updateRecommendations() {
             <i data-lucide="chevron-down" class="w-4 h-4 text-[#353230] opacity-40"></i>
           </div>
         </button>
-        <div id="yearlySavingsDetails" class="hidden px-4 pb-3 text-xs text-[#353230] space-y-1">
+        <div id="yearlySavingsDetails" class="hidden px-4 pb-3 text-xs text-[#353230] space-y-2">
           <div class="flex justify-between">
             <span class="opacity-60">Daglig besparing</span>
             <span>${dailySavings} kr</span>
           </div>
-          <div class="flex justify-between">
-            <span class="opacity-60">Beräkning</span>
-            <span>${dailySavings} kr × 365 dagar</span>
+          <div class="pt-1 border-t border-[#F2EFEC]">
+            <div class="opacity-60 mb-1">Så räknas det ut:</div>
+            <div class="space-y-0.5">
+              <div>Jämför snittpris för dagen med bästa tid för varje enhet</div>
+              <div>Multiplicerar skillnaden med förbrukning (kWh)</div>
+              <div>Summerar alla enheter = daglig besparing</div>
+              <div class="pt-1">${dailySavings} kr × 365 dagar = ${totalYearly.toFixed(0)} kr/år</div>
+            </div>
           </div>
         </div>
       </div>

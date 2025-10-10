@@ -598,26 +598,34 @@ function updateRecommendations() {
   if (filteredPriceData.length === 0) {
     yearlySavingsDiv.innerHTML = '';
     let html = '';
-    enabledAppliances.forEach(appliance => {
+
+    // Add header row with labels
+    html += `
+      <div class="px-4 py-3 flex items-center justify-between border-b border-[#F2EFEC]">
+        <div class="text-xs text-[#353230] opacity-60">Enhet</div>
+        <div class="text-xs text-[#353230] opacity-60">Besparing</div>
+      </div>
+    `;
+
+    enabledAppliances.forEach((appliance, idx) => {
       html += `
-        <div class="flex items-center justify-between p-3 bg-white rounded">
-          <div class="flex items-center gap-2 flex-1">
-            <i data-lucide="${appliance.icon}" class="w-5 h-5 text-el-gray-dark"></i>
-            <div>
-              <div class="text-caption">${appliance.name}</div>
-              <div class="text-xs text-el-gray-dark">${appliance.kWh} kWh · ${appliance.hours}h</div>
+        <div class="border-b border-[#F2EFEC] last:border-0">
+          <div class="w-full px-4 py-2 flex items-center gap-2 opacity-50">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="text-caption text-[#000000]">${appliance.name}</div>
+              <div class="text-xs text-[#353230] opacity-60">—</div>
             </div>
-          </div>
-          <div class="text-right">
-            <div class="text-body text-el-gray-dark">—</div>
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="text-caption text-[#000000]">—</div>
+            </div>
           </div>
         </div>
       `;
     });
 
     html += `
-      <div class="p-6 bg-[#F2EFEC] text-[#353230] rounded text-center mt-2">
-        <div class="text-caption">Priser för imorgon är inte tillgängliga än</div>
+      <div class="px-4 py-4 text-center">
+        <div class="text-xs text-[#353230] opacity-60">Priser för imorgon är inte tillgängliga än</div>
       </div>
     `;
 

@@ -352,8 +352,11 @@ function updateChart() {
     chart.destroy();
   }
 
+  // Get chart height for gradient
+  const chartHeight = ctx.height || 250;
+
   // Create gradient background
-  const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 250);
+  const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, chartHeight);
   gradient.addColorStop(0, 'rgba(215, 51, 51, 0.1)');   // Red top
   gradient.addColorStop(0.35, 'rgba(255, 193, 7, 0.1)'); // Yellow
   gradient.addColorStop(0.7, 'rgba(0, 154, 51, 0.1)');   // Green bottom
@@ -476,8 +479,22 @@ function updateChart() {
       },
       scales: {
         y: {
-          display: false,
-          beginAtZero: true
+          display: true,
+          beginAtZero: false,
+          min: Math.floor(minPrice * 0.95),
+          max: Math.ceil(maxPrice * 1.05),
+          ticks: {
+            font: { size: 11, weight: 'normal' },
+            color: '#353230',
+            padding: 8,
+            maxTicksLimit: 5
+          },
+          grid: {
+            display: false
+          },
+          border: {
+            display: false
+          }
         },
         x: {
           ticks: {
@@ -486,7 +503,7 @@ function updateChart() {
             maxRotation: 0,
             minRotation: 0,
             autoSkip: true,
-            maxTicksLimit: window.innerWidth < 640 ? 4 : 8,
+            maxTicksLimit: window.innerWidth < 640 ? 6 : 12,
             padding: 8,
             callback: function(value, index) {
               const label = this.getLabelForValue(value);

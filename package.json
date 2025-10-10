@@ -1,0 +1,43 @@
+{
+  "name": "elpris",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oskarglauser/Elpris.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oskarglauser/Elpris/issues"
+  },
+  "homepage": "https://github.com/oskarglauser/Elpris#readme",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.14",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14",
+    "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-toggle": "^1.1.10",
+    "@radix-ui/react-toggle-group": "^1.1.11",
+    "chart.js": "^4.5.0",
+    "chartjs-plugin-annotation": "^3.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide": "^0.545.0",
+    "lucide-react": "^0.545.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}

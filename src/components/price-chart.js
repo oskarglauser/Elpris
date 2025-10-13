@@ -77,6 +77,17 @@ export function createPriceChart() {
       }
     }
 
+    const minSpacing = 8;
+    const filteredTransitions = [];
+    let lastIndex = -minSpacing;
+
+    for (const transition of transitions) {
+      if (transition.index - lastIndex >= minSpacing) {
+        filteredTransitions.push(transition);
+        lastIndex = transition.index;
+      }
+    }
+
     if (chart) {
       chart.destroy();
     }
@@ -184,7 +195,7 @@ export function createPriceChart() {
                 borderWidth: 0
               },
               ...Object.fromEntries(
-                transitions.map((transition, idx) => [
+                filteredTransitions.map((transition, idx) => [
                   `transition_${idx}`,
                   {
                     type: 'label',

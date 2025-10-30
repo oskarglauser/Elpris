@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.elprisetjustnu.se)",
+      "Bash(cat:*)",
+      "Bash(test:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss init:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx:*)",
+      "WebSearch",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(claude mcp add:*)",
+      "mcp__figma__get_design_context",
+      "mcp__figma__get_screenshot"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

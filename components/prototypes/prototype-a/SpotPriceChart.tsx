@@ -153,6 +153,7 @@ function RollingLineChart({
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get current time and create 18-hour window
   const now = new Date();
@@ -283,6 +284,17 @@ function RollingLineChart({
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
             onIntervalChange(prices[globalIndex], globalIndex);
+
+            // Clear any existing timeout
+            if (resetTimeoutRef.current) {
+              clearTimeout(resetTimeoutRef.current);
+            }
+
+            // Set timeout to reset after 1.5 seconds of no movement
+            resetTimeoutRef.current = setTimeout(() => {
+              setActiveIndexInWindow(null);
+              onReset();
+            }, 1500);
           }
         },
         onClick: (event, activeElements) => {
@@ -402,16 +414,25 @@ function RollingLineChart({
     const canvas = canvasRef.current;
     if (canvas) {
       const handleDoubleClick = () => {
+        if (resetTimeoutRef.current) {
+          clearTimeout(resetTimeoutRef.current);
+        }
         setActiveIndexInWindow(null);
         onReset();
       };
       const handleMouseLeave = () => {
+        if (resetTimeoutRef.current) {
+          clearTimeout(resetTimeoutRef.current);
+        }
         setActiveIndexInWindow(null);
         onReset();
       };
       canvas.addEventListener('dblclick', handleDoubleClick);
       canvas.addEventListener('mouseleave', handleMouseLeave);
       return () => {
+        if (resetTimeoutRef.current) {
+          clearTimeout(resetTimeoutRef.current);
+        }
         canvas.removeEventListener('dblclick', handleDoubleClick);
         canvas.removeEventListener('mouseleave', handleMouseLeave);
       };

@@ -159,6 +159,7 @@ function RollingLineChart({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
   const isTouchingRef = useRef(false);
+  const animationFrameRef = useRef<number | null>(null);
   const onResetRef = useRef(onReset);
   const onIntervalChangeRef = useRef(onIntervalChange);
 
@@ -447,31 +448,81 @@ function RollingLineChart({
     });
   }, [activeIndexInWindow, windowIntervals.length]);
 
+  // Animate line back to current time smoothly
+  const animateToCurrentTime = (startIndex: number, targetIndex: number) => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    const duration = 250;
+    const startTime = Date.now();
+
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeOutCubic(progress);
+
+      const currentIndex = Math.round(startIndex + (targetIndex - startIndex) * easedProgress);
+      setActiveIndexInWindow(currentIndex);
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        // Animation complete - wait one more frame then hide the line
+        animationFrameRef.current = requestAnimationFrame(() => {
+          setActiveIndexInWindow(null);
+          onResetRef.current();
+          animationFrameRef.current = null;
+        });
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+  };
+
   // Pointer event handlers to track touch state
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const handlePointerDown = () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
       isTouchingRef.current = true;
     };
 
     const handlePointerUp = () => {
       isTouchingRef.current = false;
-      setActiveIndexInWindow(null);
-      onResetRef.current();
+      if (activeIndexInWindow !== null && activeIndexInWindow !== currentIndexInWindow) {
+        animateToCurrentTime(activeIndexInWindow, currentIndexInWindow);
+      } else {
+        setActiveIndexInWindow(null);
+        onResetRef.current();
+      }
     };
 
     const handlePointerLeave = () => {
       isTouchingRef.current = false;
-      setActiveIndexInWindow(null);
-      onResetRef.current();
+      if (activeIndexInWindow !== null && activeIndexInWindow !== currentIndexInWindow) {
+        animateToCurrentTime(activeIndexInWindow, currentIndexInWindow);
+      } else {
+        setActiveIndexInWindow(null);
+        onResetRef.current();
+      }
     };
 
     const handlePointerCancel = () => {
       isTouchingRef.current = false;
-      setActiveIndexInWindow(null);
-      onResetRef.current();
+      if (activeIndexInWindow !== null && activeIndexInWindow !== currentIndexInWindow) {
+        animateToCurrentTime(activeIndexInWindow, currentIndexInWindow);
+      } else {
+        setActiveIndexInWindow(null);
+        onResetRef.current();
+      }
     };
 
     canvas.addEventListener('pointerdown', handlePointerDown);
@@ -480,12 +531,15 @@ function RollingLineChart({
     canvas.addEventListener('pointercancel', handlePointerCancel);
 
     return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
       canvas.removeEventListener('pointerleave', handlePointerLeave);
       canvas.removeEventListener('pointercancel', handlePointerCancel);
     };
-  }, []);
+  }, [activeIndexInWindow, currentIndexInWindow]);
 
   return <canvas ref={canvasRef} style={{ touchAction: 'none' }} />;
 }

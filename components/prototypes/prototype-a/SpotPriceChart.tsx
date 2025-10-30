@@ -160,6 +160,7 @@ function RollingLineChart({
   const internalChartRef = useRef<ChartJS | null>(null);
   const isHoveringRef = useRef(false);
   const selectedGlobalIndexRef = useRef<number | null>(null);
+  const touchActiveRef = useRef(false);
   const onResetRef = useRef(onReset);
   const onIntervalChangeRef = useRef(onIntervalChange);
 
@@ -465,6 +466,10 @@ function RollingLineChart({
         onResetRef.current();
       };
 
+      const handleTouchStart = () => {
+        touchActiveRef.current = true;
+      };
+
       const handleTouchMove = (e: TouchEvent) => {
         e.preventDefault();
         const chart = internalChartRef.current;
@@ -494,6 +499,7 @@ function RollingLineChart({
 
       const handleTouchEnd = (e: TouchEvent) => {
         e.preventDefault();
+        touchActiveRef.current = false;
         isHoveringRef.current = false;
         setActiveIndexInWindow(null);
         selectedGlobalIndexRef.current = null;
@@ -501,23 +507,39 @@ function RollingLineChart({
       };
 
       const handleTouchCancel = () => {
+        touchActiveRef.current = false;
         isHoveringRef.current = false;
         selectedGlobalIndexRef.current = null;
         setActiveIndexInWindow(null);
         onResetRef.current();
       };
 
+      const handleDocumentTouchEnd = () => {
+        if (touchActiveRef.current) {
+          touchActiveRef.current = false;
+          isHoveringRef.current = false;
+          setActiveIndexInWindow(null);
+          selectedGlobalIndexRef.current = null;
+          onResetRef.current();
+        }
+      };
+
       canvas.addEventListener('dblclick', handleDoubleClick);
       canvas.addEventListener('mouseleave', handleMouseLeave);
+      canvas.addEventListener('touchstart', handleTouchStart);
       canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
       canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
       canvas.addEventListener('touchcancel', handleTouchCancel);
+      document.addEventListener('touchend', handleDocumentTouchEnd);
+
       return () => {
         canvas.removeEventListener('dblclick', handleDoubleClick);
         canvas.removeEventListener('mouseleave', handleMouseLeave);
+        canvas.removeEventListener('touchstart', handleTouchStart);
         canvas.removeEventListener('touchmove', handleTouchMove as EventListener);
         canvas.removeEventListener('touchend', handleTouchEnd as EventListener);
         canvas.removeEventListener('touchcancel', handleTouchCancel);
+        document.removeEventListener('touchend', handleDocumentTouchEnd);
       };
     }
   }, [windowStartIndex, prices]);

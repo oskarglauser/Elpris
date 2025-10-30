@@ -16,6 +16,26 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<DaySelection>('today');
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  // Landscape orientation detection
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(orientation: landscape)');
+
+    const handleOrientationChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsLandscape(e.matches);
+    };
+
+    // Set initial value
+    handleOrientationChange(mediaQuery);
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', handleOrientationChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleOrientationChange);
+    };
+  }, []);
 
   useEffect(() => {
     async function loadPrices() {
@@ -79,12 +99,15 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
     return date.getDate() === tomorrow.getDate() && date.getMonth() === tomorrow.getMonth();
   });
 
-  const filteredPrices = selectedDay === 'today' ? todayPrices : tomorrowPrices;
+  // In landscape: show all data (today + tomorrow), otherwise show selected day
+  const filteredPrices = isLandscape
+    ? [...todayPrices, ...tomorrowPrices]
+    : selectedDay === 'today' ? todayPrices : tomorrowPrices;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 landscape:pb-0">
       {/* iOS-style header */}
-      <div className="sticky top-0 z-50 bg-white">
+      <div className="sticky top-0 z-50 bg-white landscape:hidden">
         <div className="relative flex items-center justify-center px-4 py-3">
           <Link
             href={`/prototype-${prototypeId}`}
@@ -97,15 +120,21 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
       </div>
 
       {/* Content */}
-      <div className="bg-white">
+      <div className="bg-white landscape:h-screen landscape:flex landscape:items-center landscape:w-full">
         {/* Price Chart */}
-        <PriceChartGraph priceData={filteredPrices} selectedDay={selectedDay} />
+        <div className="landscape:w-full">
+          <PriceChartGraph priceData={filteredPrices} selectedDay={selectedDay} />
+        </div>
 
         {/* Day Toggle */}
-        <DayToggle selectedDay={selectedDay} onDayChange={setSelectedDay} />
+        <div className="landscape:hidden">
+          <DayToggle selectedDay={selectedDay} onDayChange={setSelectedDay} />
+        </div>
       </div>
 
-      <BottomNav prototypePrefix="/prototype-a" />
+      <div className="landscape:hidden">
+        <BottomNav prototypePrefix="/prototype-a" />
+      </div>
     </div>
   );
 }

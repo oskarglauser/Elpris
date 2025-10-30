@@ -30,7 +30,7 @@ export default function RootLayout({
     <html lang="sv">
       <body className={`${systemia.variable} antialiased`}>
         <RegionProvider>
-          <div className="max-w-md mx-auto bg-background min-h-screen">
+          <div className="max-w-md landscape:max-w-none mx-auto bg-background min-h-screen">
             {children}
           </div>
         </RegionProvider>

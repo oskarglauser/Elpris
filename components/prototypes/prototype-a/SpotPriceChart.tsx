@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -154,6 +154,7 @@ function RollingLineChart({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoveringRef = useRef(false);
 
   // Get current time and create 18-hour window
   const now = new Date();
@@ -169,22 +170,34 @@ function RollingLineChart({
   // Start window 1-2 hours before current time
   // Go back 4-8 intervals (1-2 hours) depending on current time
   const backIntervals = 4; // 1 hour back
-  const windowStartIndex = Math.max(0, currentIndex - backIntervals);
+  const windowStartIndex = useMemo(() =>
+    Math.max(0, currentIndex - backIntervals)
+  , [currentIndex]);
 
   // Calculate 18-hour window (72 intervals: 18 hours × 4 quarters each)
   // But limit to available data
   const maxWindowSize = 72;
-  const windowEndIndex = Math.min(windowStartIndex + maxWindowSize, prices.length);
-  const windowIntervals = prices.slice(windowStartIndex, windowEndIndex);
+  const windowEndIndex = useMemo(() =>
+    Math.min(windowStartIndex + maxWindowSize, prices.length)
+  , [windowStartIndex, prices.length]);
+
+  const windowIntervals = useMemo(() =>
+    prices.slice(windowStartIndex, windowEndIndex)
+  , [prices, windowStartIndex, windowEndIndex]);
 
   // Calculate price range
-  const priceValues = windowIntervals.map(p => p.SEK_per_kWh * 100); // Convert to öre
+  const priceValues = useMemo(() =>
+    windowIntervals.map(p => p.SEK_per_kWh * 100)
+  , [windowIntervals]);
+
   const minPrice = Math.min(...priceValues);
   const maxPrice = Math.max(...priceValues);
   const avgPrice = priceValues.reduce((a, b) => a + b, 0) / priceValues.length;
 
   // Current index within the window
-  const currentIndexInWindow = currentIndex - windowStartIndex;
+  const currentIndexInWindow = useMemo(() =>
+    currentIndex - windowStartIndex
+  , [currentIndex, windowStartIndex]);
 
   useEffect(() => {
     if (!canvasRef.current || windowIntervals.length === 0) return;
@@ -280,6 +293,7 @@ function RollingLineChart({
         },
         onHover: (event, activeElements) => {
           if (activeElements.length > 0) {
+            isHoveringRef.current = true;
             const windowIndex = activeElements[0].index;
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
@@ -292,8 +306,11 @@ function RollingLineChart({
 
             // Set timeout to reset after 1.5 seconds of no movement
             resetTimeoutRef.current = setTimeout(() => {
-              setActiveIndexInWindow(null);
-              onReset();
+              if (isHoveringRef.current) {
+                setActiveIndexInWindow(null);
+                onReset();
+                isHoveringRef.current = false;
+              }
             }, 1500);
           }
         },
@@ -372,7 +389,7 @@ function RollingLineChart({
         internalChartRef.current.destroy();
       }
     };
-  }, [windowStartIndex, windowEndIndex, currentIndexInWindow]);
+  }, [windowStartIndex, windowEndIndex]);
 
   // Update active line annotation when hovering without recreating chart
   useEffect(() => {
@@ -424,21 +441,60 @@ function RollingLineChart({
         if (resetTimeoutRef.current) {
           clearTimeout(resetTimeoutRef.current);
         }
+        isHoveringRef.current = false;
         setActiveIndexInWindow(null);
         onReset();
       };
-      const handleTouchEnd = () => {
-        // When touch ends, reset after 1.5 seconds
-        if (resetTimeoutRef.current) {
-          clearTimeout(resetTimeoutRef.current);
+
+      const handleTouchMove = (e: TouchEvent) => {
+        e.preventDefault(); // Prevent scrolling while touching chart
+        const chart = internalChartRef.current;
+        if (!chart) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        // Get chart element at touch position
+        const elements = chart.getElementsAtEventForMode(
+          { x, y } as any,
+          'nearest',
+          { intersect: false, axis: 'x' },
+          false
+        );
+
+        if (elements.length > 0) {
+          isHoveringRef.current = true;
+          const windowIndex = elements[0].index;
+          const globalIndex = windowStartIndex + windowIndex;
+          setActiveIndexInWindow(windowIndex);
+          onIntervalChange(prices[globalIndex], globalIndex);
+
+          // Clear reset timeout during active touch
+          if (resetTimeoutRef.current) {
+            clearTimeout(resetTimeoutRef.current);
+          }
         }
-        resetTimeoutRef.current = setTimeout(() => {
-          setActiveIndexInWindow(null);
-          onReset();
-        }, 1500);
       };
+
+      const handleTouchEnd = () => {
+        // When touch ends, reset after 1.5 seconds only if we were interacting
+        if (activeIndexInWindow !== null || isHoveringRef.current) {
+          if (resetTimeoutRef.current) {
+            clearTimeout(resetTimeoutRef.current);
+          }
+          resetTimeoutRef.current = setTimeout(() => {
+            setActiveIndexInWindow(null);
+            onReset();
+            isHoveringRef.current = false;
+          }, 1500);
+        }
+      };
+
       canvas.addEventListener('dblclick', handleDoubleClick);
       canvas.addEventListener('mouseleave', handleMouseLeave);
+      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
       canvas.addEventListener('touchend', handleTouchEnd);
       return () => {
         if (resetTimeoutRef.current) {
@@ -446,10 +502,11 @@ function RollingLineChart({
         }
         canvas.removeEventListener('dblclick', handleDoubleClick);
         canvas.removeEventListener('mouseleave', handleMouseLeave);
+        canvas.removeEventListener('touchmove', handleTouchMove as EventListener);
         canvas.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [onReset]);
+  }, [onReset, windowStartIndex, prices, onIntervalChange, activeIndexInWindow]);
 
   return <canvas ref={canvasRef} />;
 }

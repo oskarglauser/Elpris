@@ -167,9 +167,9 @@ export function getPriceLevel(price: number, average: number): 'low' | 'medium' 
 }
 
 /**
- * Format time for display (e.g., "Idag, 12:00-13:00")
+ * Format time for display (e.g., "Idag, 12:00-13:00" or "Just nu, 12:00-13:00")
  */
-export function formatTimeRange(start: string, end: string): string {
+export function formatTimeRange(start: string, end: string, isCurrent?: boolean): string {
   const startTime = new Date(start).toLocaleTimeString('sv-SE', {
     hour: '2-digit',
     minute: '2-digit',
@@ -178,8 +178,9 @@ export function formatTimeRange(start: string, end: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-  
-  return `Idag, ${startTime}-${endTime}`;
+
+  const prefix = isCurrent ? 'Just nu' : 'Idag';
+  return `${prefix}, ${startTime}-${endTime}`;
 }
 
 /**

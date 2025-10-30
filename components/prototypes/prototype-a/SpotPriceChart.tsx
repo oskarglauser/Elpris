@@ -122,7 +122,7 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
           )}
           {displayedInterval && (
             <div className="text-[14px] font-normal text-black leading-[20px] tracking-[-0.14px]">
-              {formatTimeRange(displayedInterval.time_start, displayedInterval.time_end)}
+              {formatTimeRange(displayedInterval.time_start, displayedInterval.time_end, selectedIndex === null)}
             </div>
           )}
         </div>
@@ -492,7 +492,8 @@ function RollingLineChart({
         }
       };
 
-      const handleTouchEnd = () => {
+      const handleTouchEnd = (e: TouchEvent) => {
+        e.preventDefault();
         isHoveringRef.current = false;
         setActiveIndexInWindow(null);
         selectedGlobalIndexRef.current = null;
@@ -509,13 +510,13 @@ function RollingLineChart({
       canvas.addEventListener('dblclick', handleDoubleClick);
       canvas.addEventListener('mouseleave', handleMouseLeave);
       canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-      canvas.addEventListener('touchend', handleTouchEnd);
+      canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
       canvas.addEventListener('touchcancel', handleTouchCancel);
       return () => {
         canvas.removeEventListener('dblclick', handleDoubleClick);
         canvas.removeEventListener('mouseleave', handleMouseLeave);
         canvas.removeEventListener('touchmove', handleTouchMove as EventListener);
-        canvas.removeEventListener('touchend', handleTouchEnd);
+        canvas.removeEventListener('touchend', handleTouchEnd as EventListener);
         canvas.removeEventListener('touchcancel', handleTouchCancel);
       };
     }

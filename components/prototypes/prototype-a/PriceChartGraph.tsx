@@ -139,7 +139,7 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
 interface InteractiveChartProps {
   priceData: PriceInterval[];
   selectedDay: 'today' | 'tomorrow';
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   chartRef: React.MutableRefObject<ChartJS | null>;
   isTouchingRef: React.MutableRefObject<boolean>;
   animationFrameRef: React.MutableRefObject<number | null>;

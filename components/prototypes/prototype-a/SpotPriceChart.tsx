@@ -242,6 +242,20 @@ function RollingLineChart({
 
     const annotations: any = {};
 
+    // Add white overlay for past time intervals
+    if (currentIndexInWindow >= 0 && currentIndexInWindow < windowIntervals.length) {
+      annotations.pastOverlay = {
+        type: 'box',
+        xMin: -0.5,
+        xMax: currentIndexInWindow,
+        yMin: 'min',
+        yMax: 'max',
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        borderWidth: 0,
+        drawTime: 'afterDatasetsDraw'
+      };
+    }
+
     // Add new day boundary indicator (solid line at midnight)
     for (let i = 1; i < windowIntervals.length; i++) {
       const prevDate = new Date(windowIntervals[i - 1].time_start);
@@ -479,10 +493,6 @@ function RollingLineChart({
       };
 
       const handleTouchEnd = () => {
-        if (selectedGlobalIndexRef.current !== null) {
-          onIntervalChangeRef.current(prices[selectedGlobalIndexRef.current], selectedGlobalIndexRef.current);
-        }
-
         isHoveringRef.current = false;
         setActiveIndexInWindow(null);
         selectedGlobalIndexRef.current = null;

@@ -130,7 +130,7 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
           )}
         </div>
         <Link href={`/prototype-${prototypeId}/detail`} className="flex items-center gap-0 text-[16px] font-normal text-black leading-[24px] tracking-[-0.24px] hover:opacity-70 transition-opacity">
-          <span>Dagens elpris</span>
+          <span>Se mer</span>
           <ChevronRight className="w-5 h-5" />
         </Link>
       </div>

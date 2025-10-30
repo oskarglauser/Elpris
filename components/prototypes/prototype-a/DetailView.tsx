@@ -1,19 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import {
   fetchTodayAndTomorrowPrices,
-  PriceInterval,
-  calculatePriceStats,
-  getCurrentPriceInterval
+  PriceInterval
 } from '@/lib/electricity-api';
-import { ApplianceService, PriceSlot } from '@/lib/appliance-service';
 import { PriceChartGraph } from './PriceChartGraph';
 import { DayToggle, DaySelection } from './DayToggle';
-import { DeviceList } from './DeviceList';
-import { SettingsModal } from './SettingsModal';
 import { BottomNav } from '@/components/shared/BottomNav';
 
 export function DetailView({ prototypeId }: { prototypeId: string }) {
@@ -21,10 +16,6 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<DaySelection>('today');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [updateTrigger, setUpdateTrigger] = useState(0);
-
-  const applianceService = useMemo(() => new ApplianceService(), []);
 
   useEffect(() => {
     async function loadPrices() {
@@ -89,14 +80,6 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
   });
 
   const filteredPrices = selectedDay === 'today' ? todayPrices : tomorrowPrices;
-  const priceSlots: PriceSlot[] = applianceService.convertPriceIntervalsToPriceSlots(filteredPrices);
-
-  const currentPrice = getCurrentPriceInterval(todayPrices);
-  const stats = calculatePriceStats(prices);
-
-  const handleUpdate = () => {
-    setUpdateTrigger(prev => prev + 1);
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -121,25 +104,6 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
         {/* Day Toggle */}
         <DayToggle selectedDay={selectedDay} onDayChange={setSelectedDay} />
       </div>
-
-      <div className="bg-background">
-        {/* Device List */}
-        <DeviceList
-          applianceService={applianceService}
-          priceData={priceSlots}
-          onSettingsClick={() => setIsSettingsOpen(true)}
-          onUpdate={handleUpdate}
-          key={updateTrigger}
-        />
-      </div>
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        applianceService={applianceService}
-        onUpdate={handleUpdate}
-      />
 
       <BottomNav prototypePrefix="/prototype-a" />
     </div>

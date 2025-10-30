@@ -160,7 +160,7 @@ function RollingLineChart({
   const internalChartRef = useRef<ChartJS | null>(null);
   const isHoveringRef = useRef(false);
   const selectedGlobalIndexRef = useRef<number | null>(null);
-  const touchActiveRef = useRef(false);
+  const pointerActiveRef = useRef(false);
   const onResetRef = useRef(onReset);
   const onIntervalChangeRef = useRef(onIntervalChange);
 
@@ -466,19 +466,20 @@ function RollingLineChart({
         onResetRef.current();
       };
 
-      const handleTouchStart = () => {
-        touchActiveRef.current = true;
+      const handlePointerDown = () => {
+        pointerActiveRef.current = true;
       };
 
-      const handleTouchMove = (e: TouchEvent) => {
+      const handlePointerMove = (e: PointerEvent) => {
+        if (!pointerActiveRef.current) return;
+
         e.preventDefault();
         const chart = internalChartRef.current;
         if (!chart) return;
 
         const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
         const elements = chart.getElementsAtEventForMode(
           { x, y } as any,
@@ -497,42 +498,40 @@ function RollingLineChart({
         }
       };
 
-      const handleTouchCancel = () => {
-        touchActiveRef.current = false;
+      const handlePointerUp = () => {
+        pointerActiveRef.current = false;
+        isHoveringRef.current = false;
+        setActiveIndexInWindow(null);
+        selectedGlobalIndexRef.current = null;
+        onResetRef.current();
+      };
+
+      const handlePointerCancel = () => {
+        pointerActiveRef.current = false;
         isHoveringRef.current = false;
         selectedGlobalIndexRef.current = null;
         setActiveIndexInWindow(null);
         onResetRef.current();
       };
 
-      const handleDocumentTouchEnd = () => {
-        if (touchActiveRef.current) {
-          touchActiveRef.current = false;
-          isHoveringRef.current = false;
-          setActiveIndexInWindow(null);
-          selectedGlobalIndexRef.current = null;
-          onResetRef.current();
-        }
-      };
-
       canvas.addEventListener('dblclick', handleDoubleClick);
-      canvas.addEventListener('mouseleave', handleMouseLeave);
-      canvas.addEventListener('touchstart', handleTouchStart);
-      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-      canvas.addEventListener('touchcancel', handleTouchCancel);
-      document.addEventListener('touchend', handleDocumentTouchEnd);
+      canvas.addEventListener('pointerdown', handlePointerDown);
+      canvas.addEventListener('pointermove', handlePointerMove);
+      canvas.addEventListener('pointerup', handlePointerUp);
+      canvas.addEventListener('pointercancel', handlePointerCancel);
+      canvas.addEventListener('pointerleave', handleMouseLeave);
 
       return () => {
         canvas.removeEventListener('dblclick', handleDoubleClick);
-        canvas.removeEventListener('mouseleave', handleMouseLeave);
-        canvas.removeEventListener('touchstart', handleTouchStart);
-        canvas.removeEventListener('touchmove', handleTouchMove as EventListener);
-        canvas.removeEventListener('touchcancel', handleTouchCancel);
-        document.removeEventListener('touchend', handleDocumentTouchEnd);
+        canvas.removeEventListener('pointerdown', handlePointerDown);
+        canvas.removeEventListener('pointermove', handlePointerMove);
+        canvas.removeEventListener('pointerup', handlePointerUp);
+        canvas.removeEventListener('pointercancel', handlePointerCancel);
+        canvas.removeEventListener('pointerleave', handleMouseLeave);
       };
     }
   }, [windowStartIndex, prices]);
 
-  return <canvas ref={canvasRef} />;
+  return <canvas ref={canvasRef} style={{ touchAction: 'none' }} />;
 }
 

@@ -276,12 +276,12 @@ function RollingLineChart({
           xMax: i,
           borderColor: '#CDC8C2',
           borderWidth: 1.5,
-          borderDash: [0],
+          borderDash: [5, 5],
         };
       }
     }
 
-    // Add current time line (grey dashed, no label)
+    // Add current time line (grey solid by default, becomes dashed when scrubbing)
     if (currentIndexInWindow >= 0 && currentIndexInWindow < windowIntervals.length) {
       annotations.currentTime = {
         type: 'line',
@@ -289,7 +289,7 @@ function RollingLineChart({
         xMax: currentIndexInWindow,
         borderColor: '#CDC8C2',
         borderWidth: 1.5,
-        borderDash: [5, 5],
+        borderDash: [0],
         label: {
           display: false
         }
@@ -446,6 +446,12 @@ function RollingLineChart({
           display: false
         }
       };
+    }
+
+    // Update current time line style based on interaction state
+    if (annotations.currentTime) {
+      // Solid when not scrubbing, dashed when scrubbing
+      annotations.currentTime.borderDash = activeIndexInWindow !== null ? [5, 5] : [0];
     }
 
     // Use requestAnimationFrame for smoother updates on iOS Safari

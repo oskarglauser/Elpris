@@ -156,10 +156,10 @@ function RollingLineChart({
   onReset: () => void;
 }) {
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
+  const [activeLineOpacity, setActiveLineOpacity] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
   const isTouchingRef = useRef(false);
-  const isAnimatingRef = useRef(false);
   const animationFrameRef = useRef<number | null>(null);
   const currentIndexInWindowRef = useRef<number>(0);
   const onResetRef = useRef(onReset);
@@ -330,10 +330,11 @@ function RollingLineChart({
           axis: 'x'
         },
         onHover: (event, activeElements) => {
-          if (activeElements.length > 0 && isTouchingRef.current && !isAnimatingRef.current) {
+          if (activeElements.length > 0 && isTouchingRef.current) {
             const windowIndex = activeElements[0].index;
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
+            setActiveLineOpacity(1);
             onIntervalChangeRef.current(prices[globalIndex], globalIndex);
           }
         },
@@ -430,13 +431,14 @@ function RollingLineChart({
 
     // Add active/selected line (black solid) if user is interacting
     if (activeIndexInWindow !== null && activeIndexInWindow >= 0 && activeIndexInWindow < windowIntervals.length) {
+      const opacity = activeLineOpacity;
       annotations.activeTimeLine = {
         type: 'line',
         xMin: activeIndexInWindow,
         xMax: activeIndexInWindow,
         yMin: 0,
         yMax: 'max',
-        borderColor: '#000000',
+        borderColor: `rgba(0, 0, 0, ${opacity})`,
         borderWidth: 2,
         borderDash: [0],
         drawTime: 'afterDatasetsDraw',
@@ -453,39 +455,31 @@ function RollingLineChart({
         internalChartRef.current.update('none');
       }
     });
-  }, [activeIndexInWindow, windowIntervals.length]);
+  }, [activeIndexInWindow, activeLineOpacity, windowIntervals.length]);
 
-  // Animate line back to current time smoothly
-  const animateToCurrentTime = (startIndex: number, targetIndex: number) => {
+  // Fade out line at current position
+  const fadeOutLine = () => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
 
-    isAnimatingRef.current = true;
-
-    const duration = 250;
+    const fadeDuration = 200;
     const startTime = Date.now();
-
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easedProgress = easeOutCubic(progress);
+      const progress = Math.min(elapsed / fadeDuration, 1);
 
-      const currentIndex = Math.round(startIndex + (targetIndex - startIndex) * easedProgress);
-      setActiveIndexInWindow(currentIndex);
+      setActiveLineOpacity(1 - progress);
 
       if (progress < 1) {
         animationFrameRef.current = requestAnimationFrame(animate);
       } else {
-        // Animation complete - wait one more frame then hide the line
-        animationFrameRef.current = requestAnimationFrame(() => {
-          setActiveIndexInWindow(null);
-          onResetRef.current();
-          isAnimatingRef.current = false;
-          animationFrameRef.current = null;
-        });
+        // Fade complete - hide line and reset
+        setActiveIndexInWindow(null);
+        setActiveLineOpacity(1);
+        onResetRef.current();
+        animationFrameRef.current = null;
       }
     };
 
@@ -502,46 +496,28 @@ function RollingLineChart({
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      isAnimatingRef.current = false;
+      setActiveLineOpacity(1);
       isTouchingRef.current = true;
     };
 
     const handlePointerUp = () => {
       isTouchingRef.current = false;
-      const currentActive = activeIndexInWindow;
-      const targetCurrent = currentIndexInWindowRef.current;
-
-      if (currentActive !== null && currentActive !== targetCurrent) {
-        animateToCurrentTime(currentActive, targetCurrent);
-      } else {
-        setActiveIndexInWindow(null);
-        onResetRef.current();
+      if (activeIndexInWindow !== null) {
+        fadeOutLine();
       }
     };
 
     const handlePointerLeave = () => {
       isTouchingRef.current = false;
-      const currentActive = activeIndexInWindow;
-      const targetCurrent = currentIndexInWindowRef.current;
-
-      if (currentActive !== null && currentActive !== targetCurrent) {
-        animateToCurrentTime(currentActive, targetCurrent);
-      } else {
-        setActiveIndexInWindow(null);
-        onResetRef.current();
+      if (activeIndexInWindow !== null) {
+        fadeOutLine();
       }
     };
 
     const handlePointerCancel = () => {
       isTouchingRef.current = false;
-      const currentActive = activeIndexInWindow;
-      const targetCurrent = currentIndexInWindowRef.current;
-
-      if (currentActive !== null && currentActive !== targetCurrent) {
-        animateToCurrentTime(currentActive, targetCurrent);
-      } else {
-        setActiveIndexInWindow(null);
-        onResetRef.current();
+      if (activeIndexInWindow !== null) {
+        fadeOutLine();
       }
     };
 

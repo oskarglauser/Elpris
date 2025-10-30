@@ -466,8 +466,9 @@ function RollingLineChart({
         onResetRef.current();
       };
 
-      const handlePointerDown = () => {
+      const handlePointerDown = (e: PointerEvent) => {
         pointerActiveRef.current = true;
+        canvas.setPointerCapture(e.pointerId);
       };
 
       const handlePointerMove = (e: PointerEvent) => {

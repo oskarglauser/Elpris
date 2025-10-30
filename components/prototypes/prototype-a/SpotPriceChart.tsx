@@ -158,9 +158,7 @@ function RollingLineChart({
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
-  const isHoveringRef = useRef(false);
-  const selectedGlobalIndexRef = useRef<number | null>(null);
-  const pointerActiveRef = useRef(false);
+  const lastInteractionTimeRef = useRef<number>(0);
   const onResetRef = useRef(onReset);
   const onIntervalChangeRef = useRef(onIntervalChange);
 
@@ -325,7 +323,7 @@ function RollingLineChart({
         },
         onHover: (event, activeElements) => {
           if (activeElements.length > 0) {
-            isHoveringRef.current = true;
+            lastInteractionTimeRef.current = Date.now();
             const windowIndex = activeElements[0].index;
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
@@ -450,88 +448,28 @@ function RollingLineChart({
     });
   }, [activeIndexInWindow, windowIntervals.length]);
 
-  // Add double-click to reset and mouse leave to auto-return to current time
+  // Auto-reset loop: if user stops interacting, reset to current time
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const handleDoubleClick = () => {
-        setActiveIndexInWindow(null);
-        selectedGlobalIndexRef.current = null;
-        onResetRef.current();
-      };
-      const handleMouseLeave = () => {
-        isHoveringRef.current = false;
-        setActiveIndexInWindow(null);
-        selectedGlobalIndexRef.current = null;
-        onResetRef.current();
-      };
+    let rafId: number;
 
-      const handlePointerDown = (e: PointerEvent) => {
-        pointerActiveRef.current = true;
-        canvas.setPointerCapture(e.pointerId);
-      };
+    const checkAndReset = () => {
+      const timeSinceLastInteraction = Date.now() - lastInteractionTimeRef.current;
 
-      const handlePointerMove = (e: PointerEvent) => {
-        if (!pointerActiveRef.current) return;
-
-        e.preventDefault();
-        const chart = internalChartRef.current;
-        if (!chart) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const elements = chart.getElementsAtEventForMode(
-          { x, y } as any,
-          'nearest',
-          { intersect: false, axis: 'x' },
-          false
-        );
-
-        if (elements.length > 0) {
-          const windowIndex = elements[0].index;
-          const globalIndex = windowStartIndex + windowIndex;
-
-          isHoveringRef.current = true;
-          selectedGlobalIndexRef.current = globalIndex;
-          setActiveIndexInWindow(windowIndex);
-        }
-      };
-
-      const handlePointerUp = () => {
-        pointerActiveRef.current = false;
-        isHoveringRef.current = false;
-        setActiveIndexInWindow(null);
-        selectedGlobalIndexRef.current = null;
-        onResetRef.current();
-      };
-
-      const handlePointerCancel = () => {
-        pointerActiveRef.current = false;
-        isHoveringRef.current = false;
-        selectedGlobalIndexRef.current = null;
+      // If no interaction for 150ms AND line is not at current time, reset
+      if (timeSinceLastInteraction > 150 && activeIndexInWindow !== null) {
         setActiveIndexInWindow(null);
         onResetRef.current();
-      };
+      }
 
-      canvas.addEventListener('dblclick', handleDoubleClick);
-      canvas.addEventListener('pointerdown', handlePointerDown);
-      canvas.addEventListener('pointermove', handlePointerMove);
-      canvas.addEventListener('pointerup', handlePointerUp);
-      canvas.addEventListener('pointercancel', handlePointerCancel);
-      canvas.addEventListener('pointerleave', handleMouseLeave);
+      rafId = requestAnimationFrame(checkAndReset);
+    };
 
-      return () => {
-        canvas.removeEventListener('dblclick', handleDoubleClick);
-        canvas.removeEventListener('pointerdown', handlePointerDown);
-        canvas.removeEventListener('pointermove', handlePointerMove);
-        canvas.removeEventListener('pointerup', handlePointerUp);
-        canvas.removeEventListener('pointercancel', handlePointerCancel);
-        canvas.removeEventListener('pointerleave', handleMouseLeave);
-      };
-    }
-  }, [windowStartIndex, prices]);
+    rafId = requestAnimationFrame(checkAndReset);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [activeIndexInWindow]);
 
   return <canvas ref={canvasRef} style={{ touchAction: 'none' }} />;
 }

@@ -111,10 +111,10 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
 
   return (
     <Card className="p-4 bg-white rounded">
-      <div className="flex justify-between items-start pb-3">
+      <div className="flex justify-between items-start pb-1">
         <div className="flex-1">
           {displayedInterval && (
-            <div className="flex items-end gap-1 leading-none mb-1">
+            <div className="flex items-end gap-1 leading-none mb-0">
               <span className="text-[32px] font-normal text-black leading-[36px] tracking-[-0.96px]">
                 {(displayedInterval.SEK_per_kWh * 100).toFixed(1)}
               </span>
@@ -135,7 +135,7 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
         </Link>
       </div>
 
-      <div className="relative h-[139px]">
+      <div className="relative h-[160px]">
         <RollingLineChart
           prices={prices}
           chartRef={chartRef}
@@ -349,6 +349,14 @@ function RollingLineChart({
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 5,
+            bottom: 0,
+            left: 0,
+            right: 0
+          }
+        },
         interaction: {
           mode: 'index',
           intersect: false,
@@ -389,7 +397,7 @@ function RollingLineChart({
               stepSize: yAxisStep,
               font: { size: 12 },
               color: '#000000',
-              padding: 5,
+              padding: 3,
               callback: function(value) {
                 return value;
               }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { RegionProvider } from "@/lib/region-context";
 
 const systemia = localFont({
   src: "../public/fonts/SystemiaVF-Regular.ttf",
@@ -28,9 +29,11 @@ export default function RootLayout({
   return (
     <html lang="sv">
       <body className={`${systemia.variable} antialiased`}>
-        <div className="max-w-md mx-auto bg-background min-h-screen">
-          {children}
-        </div>
+        <RegionProvider>
+          <div className="max-w-md mx-auto bg-background min-h-screen">
+            {children}
+          </div>
+        </RegionProvider>
       </body>
     </html>
   );

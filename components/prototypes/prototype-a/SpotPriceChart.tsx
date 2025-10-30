@@ -4,12 +4,13 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { 
-  fetchTodayAndTomorrowPrices, 
-  PriceInterval, 
+import {
+  fetchTodayAndTomorrowPrices,
+  PriceInterval,
   formatTimeRange,
-  getCurrentPriceInterval 
+  getCurrentPriceInterval
 } from '@/lib/electricity-api';
+import { useRegion } from '@/lib/region-context';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -40,6 +41,7 @@ ChartJS.register(
 );
 
 export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
+  const { region } = useRegion();
   const [prices, setPrices] = useState<PriceInterval[]>([]);
   const [displayedInterval, setDisplayedInterval] = useState<PriceInterval | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -60,8 +62,9 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
 
   useEffect(() => {
     async function loadPrices() {
+      setLoading(true);
       try {
-        const { today, tomorrow } = await fetchTodayAndTomorrowPrices();
+        const { today, tomorrow } = await fetchTodayAndTomorrowPrices(region);
         const allPrices = [...today, ...tomorrow];
         setPrices(allPrices);
         const current = getCurrentPriceInterval(allPrices);
@@ -76,7 +79,7 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
     }
 
     loadPrices();
-  }, []);
+  }, [region]);
 
   if (loading) {
     return (
@@ -413,7 +416,7 @@ function RollingLineChart({
         internalChartRef.current.destroy();
       }
     };
-  }, [windowStartIndex, windowEndIndex]);
+  }, [windowStartIndex, windowEndIndex, windowIntervals]);
 
   // Update active line annotation when hovering without recreating chart
   useEffect(() => {

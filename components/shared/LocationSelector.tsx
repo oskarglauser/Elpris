@@ -1,11 +1,35 @@
+'use client';
+
 import React from 'react';
+import { useRegion } from '@/lib/region-context';
+import { Region } from '@/lib/electricity-api';
+
+const REGIONS: { value: Region; label: string }[] = [
+  { value: 'SE1', label: 'The ski cabin (SE1)' },
+  { value: 'SE2', label: 'Cottage by the lake (SE2)' },
+  { value: 'SE3', label: 'Home (SE3)' },
+  { value: 'SE4', label: 'Summer house (SE4)' },
+];
 
 export function LocationSelector() {
+  const { region, setRegion } = useRegion();
+  const currentRegion = REGIONS.find(r => r.value === region);
+
   return (
-    <button className="flex items-center gap-1 text-sm hover:opacity-70 transition-opacity">
-      <span className="font-normal">Mor Wingmarks gränd 4</span>
-      <ChevronDownIcon className="w-4 h-4" />
-    </button>
+    <div className="relative">
+      <select
+        value={region}
+        onChange={(e) => setRegion(e.target.value as Region)}
+        className="appearance-none bg-transparent border-none text-sm font-normal pr-6 focus:outline-none cursor-pointer hover:opacity-70 transition-opacity"
+      >
+        {REGIONS.map(r => (
+          <option key={r.value} value={r.value}>
+            {r.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDownIcon className="w-4 h-4 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+    </div>
   );
 }
 

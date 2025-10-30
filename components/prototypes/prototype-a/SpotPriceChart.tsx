@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo, useCallback, startTransition } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -46,6 +46,17 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const chartRef = useRef<ChartJS<'line'> | null>(null);
+
+  // Memoize callbacks to prevent child re-renders
+  const handleIntervalChange = useCallback((interval: PriceInterval, index: number) => {
+    setDisplayedInterval(interval);
+    setSelectedIndex(index);
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setDisplayedInterval(getCurrentPriceInterval(prices));
+    setSelectedIndex(null);
+  }, [prices]);
 
   useEffect(() => {
     async function loadPrices() {
@@ -125,14 +136,8 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
         <RollingLineChart
           prices={prices}
           chartRef={chartRef}
-          onIntervalChange={(interval, index) => {
-            setDisplayedInterval(interval);
-            setSelectedIndex(index);
-          }}
-          onReset={() => {
-            setDisplayedInterval(getCurrentPriceInterval(prices));
-            setSelectedIndex(null);
-          }}
+          onIntervalChange={handleIntervalChange}
+          onReset={handleReset}
         />
       </div>
     </Card>
@@ -153,8 +158,15 @@ function RollingLineChart({
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
-  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isHoveringRef = useRef(false);
+  const selectedGlobalIndexRef = useRef<number | null>(null);
+  const onResetRef = useRef(onReset);
+  const onIntervalChangeRef = useRef(onIntervalChange);
+
+  useEffect(() => {
+    onResetRef.current = onReset;
+    onIntervalChangeRef.current = onIntervalChange;
+  }, [onReset, onIntervalChange]);
 
   // Get current time and create 18-hour window
   const now = new Date();
@@ -302,21 +314,7 @@ function RollingLineChart({
             const windowIndex = activeElements[0].index;
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
-            onIntervalChange(prices[globalIndex], globalIndex);
-
-            // Clear any existing timeout
-            if (resetTimeoutRef.current) {
-              clearTimeout(resetTimeoutRef.current);
-            }
-
-            // Set timeout to reset after 1.5 seconds of no movement
-            resetTimeoutRef.current = setTimeout(() => {
-              if (isHoveringRef.current) {
-                setActiveIndexInWindow(null);
-                onReset();
-                isHoveringRef.current = false;
-              }
-            }, 1500);
+            onIntervalChangeRef.current(prices[globalIndex], globalIndex);
           }
         },
         onClick: (event, activeElements) => {
@@ -324,7 +322,7 @@ function RollingLineChart({
             const windowIndex = activeElements[0].index;
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
-            onIntervalChange(prices[globalIndex], globalIndex);
+            onIntervalChangeRef.current(prices[globalIndex], globalIndex);
           }
         },
         plugins: {
@@ -432,7 +430,7 @@ function RollingLineChart({
     requestAnimationFrame(() => {
       // Check if chart still exists before updating (might be unmounted)
       if (internalChartRef.current) {
-        chart.update('none');
+        internalChartRef.current.update('none');
       }
     });
   }, [activeIndexInWindow, windowIntervals.length]);
@@ -442,23 +440,19 @@ function RollingLineChart({
     const canvas = canvasRef.current;
     if (canvas) {
       const handleDoubleClick = () => {
-        if (resetTimeoutRef.current) {
-          clearTimeout(resetTimeoutRef.current);
-        }
         setActiveIndexInWindow(null);
-        onReset();
+        selectedGlobalIndexRef.current = null;
+        onResetRef.current();
       };
       const handleMouseLeave = () => {
-        if (resetTimeoutRef.current) {
-          clearTimeout(resetTimeoutRef.current);
-        }
         isHoveringRef.current = false;
         setActiveIndexInWindow(null);
-        onReset();
+        selectedGlobalIndexRef.current = null;
+        onResetRef.current();
       };
 
       const handleTouchMove = (e: TouchEvent) => {
-        e.preventDefault(); // Prevent scrolling while touching chart
+        e.preventDefault();
         const chart = internalChartRef.current;
         if (!chart) return;
 
@@ -467,7 +461,6 @@ function RollingLineChart({
         const x = touch.clientX - rect.left;
         const y = touch.clientY - rect.top;
 
-        // Get chart element at touch position
         const elements = chart.getElementsAtEventForMode(
           { x, y } as any,
           'nearest',
@@ -479,43 +472,28 @@ function RollingLineChart({
           const windowIndex = elements[0].index;
           const globalIndex = windowStartIndex + windowIndex;
 
-          // Batch state updates with startTransition for better iOS performance
-          startTransition(() => {
-            isHoveringRef.current = true;
-            setActiveIndexInWindow(windowIndex);
-            onIntervalChange(prices[globalIndex], globalIndex);
-          });
-
-          // Clear reset timeout during active touch
-          if (resetTimeoutRef.current) {
-            clearTimeout(resetTimeoutRef.current);
-          }
+          isHoveringRef.current = true;
+          selectedGlobalIndexRef.current = globalIndex;
+          setActiveIndexInWindow(windowIndex);
         }
       };
 
       const handleTouchEnd = () => {
-        // When touch ends, reset after 1.5 seconds only if we were interacting
-        if (activeIndexInWindow !== null || isHoveringRef.current) {
-          if (resetTimeoutRef.current) {
-            clearTimeout(resetTimeoutRef.current);
-          }
-          resetTimeoutRef.current = setTimeout(() => {
-            setActiveIndexInWindow(null);
-            onReset();
-            isHoveringRef.current = false;
-          }, 1500);
+        if (selectedGlobalIndexRef.current !== null) {
+          onIntervalChangeRef.current(prices[selectedGlobalIndexRef.current], selectedGlobalIndexRef.current);
         }
+
+        isHoveringRef.current = false;
+        setActiveIndexInWindow(null);
+        selectedGlobalIndexRef.current = null;
+        onResetRef.current();
       };
 
       const handleTouchCancel = () => {
-        // iOS Safari fires touchcancel when scrolling or interrupts occur
-        // Immediately reset state when touch is cancelled
-        if (resetTimeoutRef.current) {
-          clearTimeout(resetTimeoutRef.current);
-        }
         isHoveringRef.current = false;
+        selectedGlobalIndexRef.current = null;
         setActiveIndexInWindow(null);
-        onReset();
+        onResetRef.current();
       };
 
       canvas.addEventListener('dblclick', handleDoubleClick);
@@ -524,9 +502,6 @@ function RollingLineChart({
       canvas.addEventListener('touchend', handleTouchEnd);
       canvas.addEventListener('touchcancel', handleTouchCancel);
       return () => {
-        if (resetTimeoutRef.current) {
-          clearTimeout(resetTimeoutRef.current);
-        }
         canvas.removeEventListener('dblclick', handleDoubleClick);
         canvas.removeEventListener('mouseleave', handleMouseLeave);
         canvas.removeEventListener('touchmove', handleTouchMove as EventListener);
@@ -534,7 +509,7 @@ function RollingLineChart({
         canvas.removeEventListener('touchcancel', handleTouchCancel);
       };
     }
-  }, [onReset, windowStartIndex, prices, onIntervalChange]);
+  }, [windowStartIndex, prices]);
 
   return <canvas ref={canvasRef} />;
 }

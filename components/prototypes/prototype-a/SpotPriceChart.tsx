@@ -207,12 +207,33 @@ function RollingLineChart({
     windowIntervals.map(p => p.SEK_per_kWh * 100)
   , [windowIntervals]);
 
-  const { minPrice, maxPrice, avgPrice } = useMemo(() => {
+  const { minPrice, maxPrice, avgPrice, yAxisMin, yAxisMax, yAxisStep } = useMemo(() => {
     const values = priceValues;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+    // Calculate nice axis bounds
+    const range = max - min;
+    const padding = range * 0.1; // 10% padding
+    const axisMin = Math.max(0, Math.floor((min - padding) / 10) * 10);
+    const axisMax = Math.ceil((max + padding) / 10) * 10;
+    const axisRange = axisMax - axisMin;
+
+    // Calculate step size (aim for 3-4 ticks)
+    let step = 10;
+    if (axisRange <= 30) step = 10;
+    else if (axisRange <= 60) step = 20;
+    else if (axisRange <= 90) step = 30;
+    else step = Math.ceil(axisRange / 4 / 10) * 10;
+
     return {
-      minPrice: Math.min(...values),
-      maxPrice: Math.max(...values),
-      avgPrice: values.reduce((a, b) => a + b, 0) / values.length
+      minPrice: min,
+      maxPrice: max,
+      avgPrice: avg,
+      yAxisMin: axisMin,
+      yAxisMax: axisMax,
+      yAxisStep: step
     };
   }, [priceValues]);
 
@@ -266,17 +287,18 @@ function RollingLineChart({
       };
     }
 
-    // Add new day boundary indicator (solid line at midnight)
+    // Add new day boundary indicator (dashed line at midnight)
     for (let i = 1; i < windowIntervals.length; i++) {
-      const prevDate = new Date(windowIntervals[i - 1].time_start);
       const currDate = new Date(windowIntervals[i].time_start);
+      const currHour = currDate.getHours();
+      const currMinute = currDate.getMinutes();
 
-      // Check if we crossed midnight
-      if (prevDate.getDate() !== currDate.getDate()) {
+      // Check if this interval starts at exactly 00:00
+      if (currHour === 0 && currMinute === 0) {
         annotations[`dayBoundary${i}`] = {
           type: 'line',
-          xMin: i,
-          xMax: i,
+          xMin: i - 0.5,
+          xMax: i - 0.5,
           borderColor: '#CDC8C2',
           borderWidth: 1.5,
           borderDash: [5, 5],
@@ -310,7 +332,7 @@ function RollingLineChart({
           backgroundColor: gradient,
           borderWidth: 1.5,
           fill: 'origin',
-          stepped: true,
+          stepped: 'middle',
           pointRadius: 0,
           pointHoverRadius: 0,
           segment: {
@@ -328,7 +350,7 @@ function RollingLineChart({
         responsive: true,
         maintainAspectRatio: false,
         interaction: {
-          mode: 'nearest',
+          mode: 'index',
           intersect: false,
           axis: 'x'
         },
@@ -360,11 +382,11 @@ function RollingLineChart({
           y: {
             display: true,
             position: 'left',
-            beginAtZero: true,
-            min: 0,
-            max: 90,
+            beginAtZero: false,
+            min: yAxisMin,
+            max: yAxisMax,
             ticks: {
-              stepSize: 30,
+              stepSize: yAxisStep,
               font: { size: 12 },
               color: '#000000',
               padding: 5,
@@ -382,6 +404,9 @@ function RollingLineChart({
             }
           },
           x: {
+            type: 'category',
+            offset: true,
+            bounds: 'data',
             ticks: {
               font: { size: 12 },
               color: '#000000',
@@ -416,7 +441,7 @@ function RollingLineChart({
         internalChartRef.current.destroy();
       }
     };
-  }, [windowStartIndex, windowEndIndex, windowIntervals]);
+  }, [windowStartIndex, windowEndIndex, windowIntervals, yAxisMin, yAxisMax, yAxisStep, avgPrice]);
 
   // Update active line annotation when hovering without recreating chart
   useEffect(() => {

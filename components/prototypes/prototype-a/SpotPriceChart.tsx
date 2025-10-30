@@ -427,14 +427,26 @@ function RollingLineChart({
         setActiveIndexInWindow(null);
         onReset();
       };
+      const handleTouchEnd = () => {
+        // When touch ends, reset after 1.5 seconds
+        if (resetTimeoutRef.current) {
+          clearTimeout(resetTimeoutRef.current);
+        }
+        resetTimeoutRef.current = setTimeout(() => {
+          setActiveIndexInWindow(null);
+          onReset();
+        }, 1500);
+      };
       canvas.addEventListener('dblclick', handleDoubleClick);
       canvas.addEventListener('mouseleave', handleMouseLeave);
+      canvas.addEventListener('touchend', handleTouchEnd);
       return () => {
         if (resetTimeoutRef.current) {
           clearTimeout(resetTimeoutRef.current);
         }
         canvas.removeEventListener('dblclick', handleDoubleClick);
         canvas.removeEventListener('mouseleave', handleMouseLeave);
+        canvas.removeEventListener('touchend', handleTouchEnd);
       };
     }
   }, [onReset]);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback, startTransition } from 'react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -190,9 +190,14 @@ function RollingLineChart({
     windowIntervals.map(p => p.SEK_per_kWh * 100)
   , [windowIntervals]);
 
-  const minPrice = Math.min(...priceValues);
-  const maxPrice = Math.max(...priceValues);
-  const avgPrice = priceValues.reduce((a, b) => a + b, 0) / priceValues.length;
+  const { minPrice, maxPrice, avgPrice } = useMemo(() => {
+    const values = priceValues;
+    return {
+      minPrice: Math.min(...values),
+      maxPrice: Math.max(...values),
+      avgPrice: values.reduce((a, b) => a + b, 0) / values.length
+    };
+  }, [priceValues]);
 
   // Current index within the window
   const currentIndexInWindow = useMemo(() =>
@@ -423,7 +428,10 @@ function RollingLineChart({
       };
     }
 
-    chart.update('none'); // Update without animation
+    // Use requestAnimationFrame for smoother updates on iOS Safari
+    requestAnimationFrame(() => {
+      chart.update('none');
+    });
   }, [activeIndexInWindow, windowIntervals.length]);
 
   // Add double-click to reset and mouse leave to auto-return to current time
@@ -465,11 +473,15 @@ function RollingLineChart({
         );
 
         if (elements.length > 0) {
-          isHoveringRef.current = true;
           const windowIndex = elements[0].index;
           const globalIndex = windowStartIndex + windowIndex;
-          setActiveIndexInWindow(windowIndex);
-          onIntervalChange(prices[globalIndex], globalIndex);
+
+          // Batch state updates with startTransition for better iOS performance
+          startTransition(() => {
+            isHoveringRef.current = true;
+            setActiveIndexInWindow(windowIndex);
+            onIntervalChange(prices[globalIndex], globalIndex);
+          });
 
           // Clear reset timeout during active touch
           if (resetTimeoutRef.current) {
@@ -492,10 +504,22 @@ function RollingLineChart({
         }
       };
 
+      const handleTouchCancel = () => {
+        // iOS Safari fires touchcancel when scrolling or interrupts occur
+        // Immediately reset state when touch is cancelled
+        if (resetTimeoutRef.current) {
+          clearTimeout(resetTimeoutRef.current);
+        }
+        isHoveringRef.current = false;
+        setActiveIndexInWindow(null);
+        onReset();
+      };
+
       canvas.addEventListener('dblclick', handleDoubleClick);
       canvas.addEventListener('mouseleave', handleMouseLeave);
       canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
       canvas.addEventListener('touchend', handleTouchEnd);
+      canvas.addEventListener('touchcancel', handleTouchCancel);
       return () => {
         if (resetTimeoutRef.current) {
           clearTimeout(resetTimeoutRef.current);
@@ -504,9 +528,10 @@ function RollingLineChart({
         canvas.removeEventListener('mouseleave', handleMouseLeave);
         canvas.removeEventListener('touchmove', handleTouchMove as EventListener);
         canvas.removeEventListener('touchend', handleTouchEnd);
+        canvas.removeEventListener('touchcancel', handleTouchCancel);
       };
     }
-  }, [onReset, windowStartIndex, prices, onIntervalChange, activeIndexInWindow]);
+  }, [onReset, windowStartIndex, prices, onIntervalChange]);
 
   return <canvas ref={canvasRef} />;
 }

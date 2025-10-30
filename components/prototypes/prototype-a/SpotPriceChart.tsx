@@ -430,7 +430,10 @@ function RollingLineChart({
 
     // Use requestAnimationFrame for smoother updates on iOS Safari
     requestAnimationFrame(() => {
-      chart.update('none');
+      // Check if chart still exists before updating (might be unmounted)
+      if (internalChartRef.current) {
+        chart.update('none');
+      }
     });
   }, [activeIndexInWindow, windowIntervals.length]);
 

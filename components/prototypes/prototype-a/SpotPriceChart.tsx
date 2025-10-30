@@ -158,7 +158,7 @@ function RollingLineChart({
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
-  const lastInteractionTimeRef = useRef<number>(0);
+  const isTouchingRef = useRef(false);
   const onResetRef = useRef(onReset);
   const onIntervalChangeRef = useRef(onIntervalChange);
 
@@ -322,8 +322,7 @@ function RollingLineChart({
           axis: 'x'
         },
         onHover: (event, activeElements) => {
-          if (activeElements.length > 0) {
-            lastInteractionTimeRef.current = Date.now();
+          if (activeElements.length > 0 && isTouchingRef.current) {
             const windowIndex = activeElements[0].index;
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
@@ -448,28 +447,45 @@ function RollingLineChart({
     });
   }, [activeIndexInWindow, windowIntervals.length]);
 
-  // Auto-reset loop: if user stops interacting, reset to current time
+  // Pointer event handlers to track touch state
   useEffect(() => {
-    let rafId: number;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const checkAndReset = () => {
-      const timeSinceLastInteraction = Date.now() - lastInteractionTimeRef.current;
-
-      // If no interaction for 150ms AND line is not at current time, reset
-      if (timeSinceLastInteraction > 150 && activeIndexInWindow !== null) {
-        setActiveIndexInWindow(null);
-        onResetRef.current();
-      }
-
-      rafId = requestAnimationFrame(checkAndReset);
+    const handlePointerDown = () => {
+      isTouchingRef.current = true;
     };
 
-    rafId = requestAnimationFrame(checkAndReset);
+    const handlePointerUp = () => {
+      isTouchingRef.current = false;
+      setActiveIndexInWindow(null);
+      onResetRef.current();
+    };
+
+    const handlePointerLeave = () => {
+      isTouchingRef.current = false;
+      setActiveIndexInWindow(null);
+      onResetRef.current();
+    };
+
+    const handlePointerCancel = () => {
+      isTouchingRef.current = false;
+      setActiveIndexInWindow(null);
+      onResetRef.current();
+    };
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointerup', handlePointerUp);
+    canvas.addEventListener('pointerleave', handlePointerLeave);
+    canvas.addEventListener('pointercancel', handlePointerCancel);
 
     return () => {
-      cancelAnimationFrame(rafId);
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('pointerleave', handlePointerLeave);
+      canvas.removeEventListener('pointercancel', handlePointerCancel);
     };
-  }, [activeIndexInWindow]);
+  }, []);
 
   return <canvas ref={canvasRef} style={{ touchAction: 'none' }} />;
 }

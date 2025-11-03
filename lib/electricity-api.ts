@@ -169,7 +169,7 @@ export function getPriceLevel(price: number, average: number): 'low' | 'medium' 
 /**
  * Format time for display (e.g., "Elpris idag, 12:00-13:00" or "Elpris just nu, 12:00-13:00")
  */
-export function formatTimeRange(start: string, end: string, isCurrent?: boolean): string {
+export function formatTimeRange(start: string, end: string, isCurrent?: boolean, selectedDay?: 'today' | 'tomorrow' | 'both'): string {
   const startTime = new Date(start).toLocaleTimeString('sv-SE', {
     hour: '2-digit',
     minute: '2-digit',
@@ -179,7 +179,19 @@ export function formatTimeRange(start: string, end: string, isCurrent?: boolean)
     minute: '2-digit',
   });
 
-  const prefix = isCurrent ? 'Elpris just nu' : 'Elpris idag';
+  let prefix = 'Elpris idag';
+  if (selectedDay === 'tomorrow') {
+    prefix = 'Elpris imorgon';
+  } else if (selectedDay === 'both') {
+    // For 'both' view, determine if the interval is today or tomorrow
+    const intervalDate = new Date(start);
+    const now = new Date();
+    const isToday = intervalDate.getDate() === now.getDate() && intervalDate.getMonth() === now.getMonth();
+    prefix = isToday ? 'Elpris idag' : 'Elpris imorgon';
+  } else if (isCurrent) {
+    prefix = 'Elpris just nu';
+  }
+
   return `${prefix}, ${startTime}-${endTime}`;
 }
 

@@ -125,7 +125,7 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
           )}
           {displayedInterval && (
             <div className="text-[14px] font-normal text-black leading-[20px] tracking-[-0.14px]">
-              {formatTimeRange(displayedInterval.time_start, displayedInterval.time_end, selectedIndex === null)}
+              {formatTimeRange(displayedInterval.time_start, displayedInterval.time_end, selectedIndex === null, 'today')}
             </div>
           )}
         </div>
@@ -306,15 +306,15 @@ function RollingLineChart({
       }
     }
 
-    // Add current time line (grey solid by default, becomes dashed when scrubbing)
+    // Add current time line (black dashed)
     if (currentIndexInWindow >= 0 && currentIndexInWindow < windowIntervals.length) {
       annotations.currentTime = {
         type: 'line',
         xMin: currentIndexInWindow,
         xMax: currentIndexInWindow,
-        borderColor: '#CDC8C2',
+        borderColor: '#191919',
         borderWidth: 1.5,
-        borderDash: [0],
+        borderDash: [5, 5],
         label: {
           display: false
         }
@@ -484,11 +484,7 @@ function RollingLineChart({
       };
     }
 
-    // Update current time line style based on interaction state
-    if (annotations.currentTime) {
-      // Solid when not scrubbing, dashed when scrubbing
-      annotations.currentTime.borderDash = activeIndexInWindow !== null ? [5, 5] : [0];
-    }
+    // Current time line stays dashed (no style change during scrubbing)
 
     // Use requestAnimationFrame for smoother updates on iOS Safari
     requestAnimationFrame(() => {

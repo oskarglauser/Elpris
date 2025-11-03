@@ -32,7 +32,7 @@ ChartJS.register(
 
 interface PriceChartGraphProps {
   priceData: PriceInterval[];
-  selectedDay: 'today' | 'tomorrow';
+  selectedDay: 'today' | 'tomorrow' | 'both';
 }
 
 export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps) {
@@ -92,6 +92,22 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
     );
   }
 
+  // Empty state for tomorrow when no data is available
+  if (priceData.length === 0 && selectedDay === 'tomorrow') {
+    return (
+      <div className="px-4 pt-4 pb-2 bg-white landscape:px-2 landscape:w-full">
+        <div className="max-w-4xl mx-auto landscape:max-w-none landscape:w-full">
+          <div className="relative h-[500px] landscape:h-[calc(100vh-120px)] flex items-center justify-center">
+            <div className="text-center text-muted-foreground">
+              <p className="text-lg font-medium mb-2">Inga priser tillgängliga</p>
+              <p className="text-sm">Morgondagens elpriser publiceras tidigast kl 13:00</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 pt-4 pb-2 bg-white landscape:px-2 landscape:w-full">
       <div className="max-w-4xl mx-auto landscape:max-w-none landscape:w-full">
@@ -109,13 +125,13 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
           )}
           {displayedInterval && (
             <div className="text-[14px] font-normal text-black leading-[20px] tracking-[-0.14px]">
-              {formatTimeRange(displayedInterval.time_start, displayedInterval.time_end, selectedIndex === null && selectedDay === 'today')}
+              {formatTimeRange(displayedInterval.time_start, displayedInterval.time_end, selectedIndex === null && selectedDay === 'today', selectedDay)}
             </div>
           )}
         </div>
 
         {/* Chart */}
-        <div className="relative h-[400px] landscape:h-[calc(100vh-120px)]">
+        <div className="relative h-[500px] landscape:h-[calc(100vh-120px)]">
           <InteractiveChart
             priceData={priceData}
             selectedDay={selectedDay}
@@ -138,7 +154,7 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
 
 interface InteractiveChartProps {
   priceData: PriceInterval[];
-  selectedDay: 'today' | 'tomorrow';
+  selectedDay: 'today' | 'tomorrow' | 'both';
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   chartRef: React.MutableRefObject<ChartJS | null>;
   isTouchingRef: React.MutableRefObject<boolean>;
@@ -212,14 +228,18 @@ function InteractiveChart({
   const smartLabels = useMemo(() => {
     const labels: Array<{ index: number; type: 'up' | 'down'; time: string }> = [];
 
-    if (selectedDay !== 'today' || currentIndex < 0) {
+    // For today/both: start from current time, for tomorrow: start from beginning
+    const startIndex = selectedDay === 'tomorrow' ? 1 : (currentIndex >= 0 ? currentIndex + 1 : 1);
+
+    // Don't show labels if we're past the day's data
+    if (startIndex >= prices.length) {
       return labels;
     }
 
     let foundUp = false;
     let foundDown = false;
 
-    for (let i = currentIndex + 1; i < prices.length && (!foundUp || !foundDown); i++) {
+    for (let i = startIndex; i < prices.length && (!foundUp || !foundDown); i++) {
       const prevPrice = prices[i - 1];
       const currPrice = prices[i];
       const prevCategory = prevPrice < avgPrice * 0.85 ? 'green' : prevPrice >= avgPrice * 1.15 ? 'red' : 'yellow';
@@ -287,26 +307,20 @@ function InteractiveChart({
 
   const handlePointerUp = useCallback(() => {
     isTouchingRef.current = false;
-    if (activeIndexInChart !== null) {
-      fadeOutLine();
-    }
-  }, [isTouchingRef, activeIndexInChart, fadeOutLine]);
+    // Keep the scrubbed position - don't reset
+  }, [isTouchingRef]);
 
   const handlePointerLeave = useCallback(() => {
     if (isTouchingRef.current) {
       isTouchingRef.current = false;
-      if (activeIndexInChart !== null) {
-        fadeOutLine();
-      }
+      // Keep the scrubbed position - don't reset
     }
-  }, [isTouchingRef, activeIndexInChart, fadeOutLine]);
+  }, [isTouchingRef]);
 
   const handlePointerCancel = useCallback(() => {
     isTouchingRef.current = false;
-    if (activeIndexInChart !== null) {
-      fadeOutLine();
-    }
-  }, [isTouchingRef, activeIndexInChart, fadeOutLine]);
+    // Keep the scrubbed position - don't reset
+  }, [isTouchingRef]);
 
   // Create chart
   useEffect(() => {
@@ -326,7 +340,7 @@ function InteractiveChart({
       return `${h}:${m}`;
     });
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
     gradient.addColorStop(0, 'rgba(215, 51, 51, 0.1)');
     gradient.addColorStop(0.45, 'rgba(255, 193, 7, 0.1)');
     gradient.addColorStop(0.8, 'rgba(0, 154, 51, 0.1)');
@@ -346,8 +360,19 @@ function InteractiveChart({
       };
     }
 
-    // Add smart labels
+    // Add smart labels with edge detection
     smartLabels.forEach((label, idx) => {
+      const isNearStart = label.index < 8;
+      const isNearEnd = label.index > priceData.length - 15;
+
+      // Adjust position to prevent cutoff at edges
+      let xAdjust = 0;
+      if (isNearStart) {
+        xAdjust = 25; // Push right if near start
+      } else if (isNearEnd) {
+        xAdjust = -25; // Push left if near end
+      }
+
       annotations[`label_${idx}`] = {
         type: 'label',
         xValue: label.index,
@@ -358,7 +383,8 @@ function InteractiveChart({
         font: { size: 11 },
         padding: { top: 3, bottom: 3, left: 6, right: 6 },
         borderRadius: 4,
-        position: 'start'
+        position: 'start',
+        xAdjust: xAdjust
       };
     });
 

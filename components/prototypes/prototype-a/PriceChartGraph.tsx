@@ -82,7 +82,7 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
       <div className="px-4 py-8 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col items-center justify-center gap-4 py-12">
-            <div className="text-gray-400 text-center">
+            <div className="text-center">
               <p className="text-lg font-medium">Priser för imorgon är inte tillgängliga än</p>
               <p className="text-sm mt-2">Morgondagens priser publiceras tidigast kl 13:00</p>
             </div>

@@ -160,6 +160,7 @@ function RollingLineChart({
 }) {
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
   const [activeLineOpacity, setActiveLineOpacity] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
   const isTouchingRef = useRef(false);
@@ -306,7 +307,7 @@ function RollingLineChart({
       }
     }
 
-    // Add current time line (black dashed)
+    // Add current time line (black dashed, color updated dynamically by separate effect)
     if (currentIndexInWindow >= 0 && currentIndexInWindow < windowIntervals.length) {
       annotations.currentTime = {
         type: 'line',
@@ -484,8 +485,6 @@ function RollingLineChart({
       };
     }
 
-    // Current time line stays dashed (no style change during scrubbing)
-
     // Use requestAnimationFrame for smoother updates on iOS Safari
     requestAnimationFrame(() => {
       // Check if chart still exists before updating (might be unmounted)
@@ -494,6 +493,25 @@ function RollingLineChart({
       }
     });
   }, [activeIndexInWindow, activeLineOpacity, windowIntervals.length]);
+
+  // Update current time line color when dragging state changes
+  useEffect(() => {
+    if (!internalChartRef.current) return;
+
+    const chart = internalChartRef.current;
+    const annotations = chart.options.plugins?.annotation?.annotations as any;
+
+    if (!annotations || !annotations.currentTime) return;
+
+    // Update current time line color based on dragging state
+    annotations.currentTime.borderColor = isDragging ? '#CDC8C2' : '#191919';
+
+    requestAnimationFrame(() => {
+      if (internalChartRef.current) {
+        internalChartRef.current.update('none');
+      }
+    });
+  }, [isDragging]);
 
   // Fade out line at current position
   const fadeOutLine = () => {
@@ -535,10 +553,12 @@ function RollingLineChart({
         animationFrameRef.current = null;
       }
       setActiveLineOpacity(1);
+      setIsDragging(true);
       isTouchingRef.current = true;
     };
 
     const handlePointerUp = () => {
+      setIsDragging(false);
       isTouchingRef.current = false;
       if (activeIndexInWindow !== null) {
         fadeOutLine();
@@ -546,6 +566,7 @@ function RollingLineChart({
     };
 
     const handlePointerLeave = () => {
+      setIsDragging(false);
       isTouchingRef.current = false;
       if (activeIndexInWindow !== null) {
         fadeOutLine();
@@ -553,6 +574,7 @@ function RollingLineChart({
     };
 
     const handlePointerCancel = () => {
+      setIsDragging(false);
       isTouchingRef.current = false;
       if (activeIndexInWindow !== null) {
         fadeOutLine();

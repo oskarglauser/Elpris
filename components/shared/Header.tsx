@@ -10,7 +10,7 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-background">
       <div className="flex items-center justify-between px-4 py-3">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-20">
+        
           <Image
             src="/fonts/Greenely-symbol.svg"
             alt="Greenely"
@@ -25,7 +25,7 @@ export function Header() {
             height={0}
             style={{ width: '90px', height: 'auto' }}
           />
-        </Link>
+       
 
         {/* Actions */}
         <div className="flex items-center gap-2">

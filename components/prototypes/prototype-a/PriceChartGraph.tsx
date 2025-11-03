@@ -97,7 +97,7 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
     return (
       <div className="px-4 pt-4 pb-2 bg-white landscape:px-2 landscape:w-full">
         <div className="max-w-4xl mx-auto landscape:max-w-none landscape:w-full">
-          <div className="relative h-[500px] landscape:h-[calc(100vh-120px)] flex items-center justify-center">
+          <div className="relative h-[350px] landscape:h-[calc(100vh-120px)] flex items-center justify-center">
             <div className="text-center text-muted-foreground">
               <p className="text-lg font-medium mb-2">Inga priser tillgängliga</p>
               <p className="text-sm">Morgondagens elpriser publiceras tidigast kl 13:00</p>
@@ -131,7 +131,7 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
         </div>
 
         {/* Chart */}
-        <div className="relative h-[500px] landscape:h-[calc(100vh-120px)]">
+        <div className="relative h-[350px] landscape:h-[calc(100vh-120px)]">
           <InteractiveChart
             priceData={priceData}
             selectedDay={selectedDay}
@@ -340,7 +340,7 @@ function InteractiveChart({
       return `${h}:${m}`;
     });
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 350);
     gradient.addColorStop(0, 'rgba(215, 51, 51, 0.1)');
     gradient.addColorStop(0.45, 'rgba(255, 193, 7, 0.1)');
     gradient.addColorStop(0.8, 'rgba(0, 154, 51, 0.1)');

@@ -111,7 +111,7 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
         : [...todayPrices, ...tomorrowPrices]; // 'both' case
 
   return (
-    <div className="min-h-screen bg-background pb-20 landscape:pb-0">
+    <div className="min-h-screen bg-white pb-20 landscape:pb-0">
       {/* iOS-style header */}
       <div className="sticky top-0 z-50 bg-white landscape:hidden">
         <div className="relative flex items-center justify-center px-4 py-3">

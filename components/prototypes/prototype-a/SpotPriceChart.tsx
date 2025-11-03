@@ -166,6 +166,7 @@ function RollingLineChart({
   const isTouchingRef = useRef(false);
   const animationFrameRef = useRef<number | null>(null);
   const currentIndexInWindowRef = useRef<number>(0);
+  const prevIndexRef = useRef<number | null>(null);
   const onResetRef = useRef(onReset);
   const onIntervalChangeRef = useRef(onIntervalChange);
 
@@ -366,6 +367,13 @@ function RollingLineChart({
         onHover: (event, activeElements) => {
           if (activeElements.length > 0 && isTouchingRef.current) {
             const windowIndex = activeElements[0].index;
+
+            // Haptic feedback when crossing to new interval
+            if (prevIndexRef.current !== windowIndex && navigator.vibrate) {
+              navigator.vibrate(1);
+            }
+            prevIndexRef.current = windowIndex;
+
             const globalIndex = windowStartIndex + windowIndex;
             setActiveIndexInWindow(windowIndex);
             setActiveLineOpacity(1);
@@ -560,6 +568,7 @@ function RollingLineChart({
     const handlePointerUp = () => {
       setIsDragging(false);
       isTouchingRef.current = false;
+      prevIndexRef.current = null;
       if (activeIndexInWindow !== null) {
         fadeOutLine();
       }
@@ -568,6 +577,7 @@ function RollingLineChart({
     const handlePointerLeave = () => {
       setIsDragging(false);
       isTouchingRef.current = false;
+      prevIndexRef.current = null;
       if (activeIndexInWindow !== null) {
         fadeOutLine();
       }
@@ -576,6 +586,7 @@ function RollingLineChart({
     const handlePointerCancel = () => {
       setIsDragging(false);
       isTouchingRef.current = false;
+      prevIndexRef.current = null;
       if (activeIndexInWindow !== null) {
         fadeOutLine();
       }

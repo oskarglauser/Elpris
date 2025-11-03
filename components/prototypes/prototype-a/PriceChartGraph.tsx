@@ -45,6 +45,7 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
   const chartRef = useRef<ChartJS | null>(null);
   const isTouchingRef = useRef(false);
   const animationFrameRef = useRef<number | null>(null);
+  const prevIndexRef = useRef<number | null>(null);
   const onIntervalChangeRef = useRef<(interval: PriceInterval, index: number) => void>(() => {});
   const onResetRef = useRef<() => void>(() => {});
 
@@ -139,6 +140,7 @@ export function PriceChartGraph({ priceData, selectedDay }: PriceChartGraphProps
             chartRef={chartRef}
             isTouchingRef={isTouchingRef}
             animationFrameRef={animationFrameRef}
+            prevIndexRef={prevIndexRef}
             activeIndexInChart={activeIndexInChart}
             setActiveIndexInChart={setActiveIndexInChart}
             activeLineOpacity={activeLineOpacity}
@@ -159,6 +161,7 @@ interface InteractiveChartProps {
   chartRef: React.MutableRefObject<ChartJS | null>;
   isTouchingRef: React.MutableRefObject<boolean>;
   animationFrameRef: React.MutableRefObject<number | null>;
+  prevIndexRef: React.MutableRefObject<number | null>;
   activeIndexInChart: number | null;
   setActiveIndexInChart: (index: number | null) => void;
   activeLineOpacity: number;
@@ -174,6 +177,7 @@ function InteractiveChart({
   chartRef,
   isTouchingRef,
   animationFrameRef,
+  prevIndexRef,
   activeIndexInChart,
   setActiveIndexInChart,
   activeLineOpacity,
@@ -307,20 +311,23 @@ function InteractiveChart({
 
   const handlePointerUp = useCallback(() => {
     isTouchingRef.current = false;
+    prevIndexRef.current = null;
     // Keep the scrubbed position - don't reset
-  }, [isTouchingRef]);
+  }, [isTouchingRef, prevIndexRef]);
 
   const handlePointerLeave = useCallback(() => {
     if (isTouchingRef.current) {
       isTouchingRef.current = false;
+      prevIndexRef.current = null;
       // Keep the scrubbed position - don't reset
     }
-  }, [isTouchingRef]);
+  }, [isTouchingRef, prevIndexRef]);
 
   const handlePointerCancel = useCallback(() => {
     isTouchingRef.current = false;
+    prevIndexRef.current = null;
     // Keep the scrubbed position - don't reset
-  }, [isTouchingRef]);
+  }, [isTouchingRef, prevIndexRef]);
 
   // Create chart
   useEffect(() => {
@@ -432,6 +439,13 @@ function InteractiveChart({
         onHover: (event, activeElements) => {
           if (activeElements.length > 0 && isTouchingRef.current) {
             const index = activeElements[0].index;
+
+            // Haptic feedback when crossing to new interval
+            if (prevIndexRef.current !== index && navigator.vibrate) {
+              navigator.vibrate(1);
+            }
+            prevIndexRef.current = index;
+
             setActiveIndexInChart(index);
             setActiveLineOpacity(1);
             onIntervalChangeRef.current(priceData[index], index);

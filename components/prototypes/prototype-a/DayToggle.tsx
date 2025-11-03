@@ -2,14 +2,15 @@
 
 import React from 'react';
 
-export type DaySelection = 'today' | 'tomorrow';
+export type DaySelection = 'today' | 'tomorrow' | 'both';
 
 interface DayToggleProps {
   selectedDay: DaySelection;
   onDayChange: (day: DaySelection) => void;
+  hasTomorrowData: boolean;
 }
 
-export function DayToggle({ selectedDay, onDayChange }: DayToggleProps) {
+export function DayToggle({ selectedDay, onDayChange, hasTomorrowData }: DayToggleProps) {
   return (
     <div className="px-4 pb-4">
       <div className="max-w-4xl mx-auto flex justify-center">
@@ -34,6 +35,18 @@ export function DayToggle({ selectedDay, onDayChange }: DayToggleProps) {
           >
             Imorgon
           </button>
+          {hasTomorrowData && (
+            <button
+              onClick={() => onDayChange('both')}
+              className={`px-4 py-1.5 text-sm rounded transition-colors ${
+                selectedDay === 'both'
+                  ? 'bg-white text-[#000000] shadow-sm'
+                  : 'bg-[#CDC8C2] hover:bg-white/50 text-[#000000]'
+              }`}
+            >
+              Två dagar
+            </button>
+          )}
         </div>
       </div>
     </div>

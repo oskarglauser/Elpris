@@ -99,10 +99,16 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
     return date.getDate() === tomorrow.getDate() && date.getMonth() === tomorrow.getMonth();
   });
 
+  const hasTomorrowData = tomorrowPrices.length > 0;
+
   // In landscape: show all data (today + tomorrow), otherwise show selected day
   const filteredPrices = isLandscape
     ? [...todayPrices, ...tomorrowPrices]
-    : selectedDay === 'today' ? todayPrices : tomorrowPrices;
+    : selectedDay === 'today'
+      ? todayPrices
+      : selectedDay === 'tomorrow'
+        ? tomorrowPrices
+        : [...todayPrices, ...tomorrowPrices]; // 'both' case
 
   return (
     <div className="min-h-screen bg-background pb-20 landscape:pb-0">
@@ -128,7 +134,7 @@ export function DetailView({ prototypeId }: { prototypeId: string }) {
 
         {/* Day Toggle */}
         <div className="landscape:hidden">
-          <DayToggle selectedDay={selectedDay} onDayChange={setSelectedDay} />
+          <DayToggle selectedDay={selectedDay} onDayChange={setSelectedDay} hasTomorrowData={hasTomorrowData} />
         </div>
       </div>
 

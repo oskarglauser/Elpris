@@ -33,12 +33,17 @@ export default function LandingPage() {
         </div>
 
         <div className="space-y-4">
-          <PrototypeCard 
+          <PrototypeCard
             href="/prototype-a"
             name="Prototyp A - 12 timmar"
           />
 
-          <PrototypeCard 
+          <PrototypeCard
+            href="/prototype-a2"
+            name="Prototyp A2 - Alla priser"
+          />
+
+          <PrototypeCard
             href="/prototype-g"
             name="Prototyp G - 18 timmar"
           />

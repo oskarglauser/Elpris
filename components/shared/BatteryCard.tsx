@@ -2,9 +2,16 @@ import React from 'react';
 import { Car, Zap } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
-export function BatteryCard() {
+interface BatteryCardProps {
+  onClick?: () => void;
+}
+
+export function BatteryCard({ onClick }: BatteryCardProps) {
   return (
-    <Card className="p-4 bg-card border-border">
+    <Card
+      className={`p-4 bg-card border-border ${onClick ? 'cursor-pointer hover:bg-accent transition-colors' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex flex-col items-start">
         <div className="relative mb-2">
           <Car className="w-5 h-5" />

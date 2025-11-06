@@ -612,7 +612,7 @@ function InteractiveChart({
       {labelPositions.map((label, idx) => (
         <div
           key={idx}
-          className="absolute flex items-center gap-1 px-[6px] py-[3px] rounded text-white text-[11px] font-normal pointer-events-none transition-opacity duration-300"
+          className="absolute flex items-center gap-1 px-[6px] py-[3px] rounded text-white text-[13px] font-normal pointer-events-none transition-opacity duration-300"
           style={{
             left: `${label.x}px`,
             top: `${label.y}px`,
@@ -623,9 +623,9 @@ function InteractiveChart({
         >
           <span>{label.time}</span>
           {label.type === 'up' ? (
-            <ArrowUpRight className="w-3 h-3" />
+            <ArrowUpRight className="w-4 h-4" />
           ) : (
-            <ArrowDownRight className="w-3 h-3" />
+            <ArrowDownRight className="w-4 h-4" />
           )}
         </div>
       ))}

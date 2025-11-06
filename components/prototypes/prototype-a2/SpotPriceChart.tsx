@@ -40,7 +40,7 @@ ChartJS.register(
   annotationPlugin
 );
 
-export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
+export function SpotPriceChart({ prototypeId, labelStyle = 'transparent' }: { prototypeId: string; labelStyle?: 'solid' | 'transparent' }) {
   const { region } = useRegion();
   const [prices, setPrices] = useState<PriceInterval[]>([]);
   const [displayedInterval, setDisplayedInterval] = useState<PriceInterval | null>(null);
@@ -141,6 +141,7 @@ export function SpotPriceChart({ prototypeId }: { prototypeId: string }) {
           chartRef={chartRef}
           onIntervalChange={handleIntervalChange}
           onReset={handleReset}
+          labelStyle={labelStyle}
         />
       </div>
     </Card>
@@ -151,12 +152,14 @@ function RollingLineChart({
   prices,
   chartRef,
   onIntervalChange,
-  onReset
+  onReset,
+  labelStyle = 'transparent'
 }: {
   prices: PriceInterval[];
   chartRef: React.RefObject<ChartJS<'line'> | null>;
   onIntervalChange: (interval: PriceInterval, index: number) => void;
   onReset: () => void;
+  labelStyle?: 'solid' | 'transparent';
 }) {
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
   const [activeLineOpacity, setActiveLineOpacity] = useState(1);
@@ -390,7 +393,7 @@ function RollingLineChart({
           backgroundColor: gradient,
           borderWidth: 1.5,
           fill: 'origin',
-          stepped: 'middle',
+          stepped: true,
           pointRadius: 0,
           pointHoverRadius: 0,
           segment: {
@@ -478,7 +481,7 @@ function RollingLineChart({
           },
           x: {
             type: 'category',
-            offset: true,
+            offset: false,
             bounds: 'data',
             ticks: {
               font: { size: 12 },
@@ -527,21 +530,19 @@ function RollingLineChart({
     const chart = internalChartRef.current;
     const chartArea = chart.chartArea;
 
+    // Get pixel position for the index
     let x = chart.scales.x.getPixelForValue(bestChargingStretch.index);
-    let y = chart.scales.y.getPixelForValue(priceValues[bestChargingStretch.index]) - 20;
 
-    // Ensure label stays within chart bounds
+    // Position above the chart area
+    const y = chartArea.top - 30;
+
+    // Ensure label stays within chart bounds horizontally
     const labelWidth = 50; // Approximate width of label with time + icon
-    const labelHeight = 20; // Approximate height
 
     if (x - labelWidth / 2 < chartArea.left) {
       x = chartArea.left + labelWidth / 2;
     } else if (x + labelWidth / 2 > chartArea.right) {
       x = chartArea.right - labelWidth / 2;
-    }
-
-    if (y - labelHeight < chartArea.top) {
-      y = chartArea.top + labelHeight;
     }
 
     setLabelPosition({
@@ -709,17 +710,18 @@ function RollingLineChart({
       <canvas ref={canvasRef} style={{ touchAction: 'none' }} />
       {labelPosition && (
         <div
-          className="absolute flex items-center gap-1 px-[6px] py-[3px] rounded text-white text-[11px] font-normal pointer-events-none transition-opacity duration-300"
+          className="absolute flex items-center gap-1 px-[6px] py-[3px] rounded text-[13px] font-normal pointer-events-none transition-opacity duration-300"
           style={{
             left: `${labelPosition.x}px`,
             top: `${labelPosition.y}px`,
-            transform: 'translate(-50%, -100%)',
-            backgroundColor: '#009A33',
+            transform: 'translate(0, 0)',
+            backgroundColor: labelStyle === 'solid' ? '#009A33' : 'white',
+            color: labelStyle === 'solid' ? 'white' : '#009A33',
             opacity: labelVisible ? 1 : 0
           }}
         >
           <span>{labelPosition.time}</span>
-          <ArrowDownRight className="w-3 h-3" />
+          <ArrowDownRight className="w-4 h-4" />
         </div>
       )}
     </div>

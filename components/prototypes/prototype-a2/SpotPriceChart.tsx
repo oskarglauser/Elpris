@@ -244,25 +244,58 @@ function RollingLineChart({
     currentIndex - windowStartIndex
   , [currentIndex, windowStartIndex]);
 
-  // Find next "going down" transition (to cheap/green) in future
-  const nextGoingDown = useMemo(() => {
-    const startIndex = currentIndexInWindow + 1;
-    if (startIndex >= windowIntervals.length) return null;
+  // Find best charging stretch (longest and lowest stretch of low prices)
+  const bestChargingStretch = useMemo(() => {
+    const startSearchIndex = currentIndexInWindow + 1;
+    if (startSearchIndex >= windowIntervals.length) return null;
 
-    for (let i = startIndex; i < windowIntervals.length; i++) {
-      const prevPrice = priceValues[i - 1];
-      const currPrice = priceValues[i];
-      const prevCategory = prevPrice < avgPrice * 0.85 ? 'green' : prevPrice >= avgPrice * 1.15 ? 'red' : 'yellow';
-      const currCategory = currPrice < avgPrice * 0.85 ? 'green' : currPrice >= avgPrice * 1.15 ? 'red' : 'yellow';
+    const cheapThreshold = avgPrice * 0.85;
+    const stretches: Array<{ startIndex: number; endIndex: number; avgPrice: number }> = [];
 
-      if ((prevCategory === 'red' || prevCategory === 'yellow') && currCategory === 'green') {
-        const time = new Date(windowIntervals[i].time_start);
-        const h = String(time.getHours()).padStart(2, '0');
-        const m = String(time.getMinutes()).padStart(2, '0');
-        return { index: i, time: `${h}:${m}` };
+    // Find all continuous stretches of cheap prices
+    let stretchStart: number | null = null;
+    for (let i = startSearchIndex; i < windowIntervals.length; i++) {
+      const isCheap = priceValues[i] < cheapThreshold;
+
+      if (isCheap && stretchStart === null) {
+        stretchStart = i;
+      } else if (!isCheap && stretchStart !== null) {
+        stretches.push({
+          startIndex: stretchStart,
+          endIndex: i - 1,
+          avgPrice: priceValues.slice(stretchStart, i).reduce((a, b) => a + b, 0) / (i - stretchStart)
+        });
+        stretchStart = null;
       }
     }
-    return null;
+
+    // If stretch continues to end of data
+    if (stretchStart !== null) {
+      stretches.push({
+        startIndex: stretchStart,
+        endIndex: windowIntervals.length - 1,
+        avgPrice: priceValues.slice(stretchStart).reduce((a, b) => a + b, 0) / (windowIntervals.length - stretchStart)
+      });
+    }
+
+    if (stretches.length === 0) return null;
+
+    // Score each stretch: duration × savings percentage
+    const scoredStretches = stretches.map(stretch => {
+      const duration = (stretch.endIndex - stretch.startIndex + 1) * 0.25; // hours
+      const savings = ((avgPrice - stretch.avgPrice) / avgPrice) * 100; // percent
+      const score = duration * savings;
+      return { ...stretch, score };
+    });
+
+    // Find best stretch
+    const best = scoredStretches.reduce((prev, curr) => curr.score > prev.score ? curr : prev);
+
+    const time = new Date(windowIntervals[best.startIndex].time_start);
+    const h = String(time.getHours()).padStart(2, '0');
+    const m = String(time.getMinutes()).padStart(2, '0');
+
+    return { index: best.startIndex, time: `${h}:${m}` };
   }, [windowIntervals, priceValues, avgPrice, currentIndexInWindow]);
 
   // Keep ref updated
@@ -485,7 +518,7 @@ function RollingLineChart({
 
   // Calculate label position after chart render
   useEffect(() => {
-    if (!internalChartRef.current || !nextGoingDown) {
+    if (!internalChartRef.current || !bestChargingStretch) {
       setLabelPosition(null);
       setLabelVisible(false);
       return;
@@ -494,8 +527,8 @@ function RollingLineChart({
     const chart = internalChartRef.current;
     const chartArea = chart.chartArea;
 
-    let x = chart.scales.x.getPixelForValue(nextGoingDown.index);
-    let y = chart.scales.y.getPixelForValue(priceValues[nextGoingDown.index]) - 20;
+    let x = chart.scales.x.getPixelForValue(bestChargingStretch.index);
+    let y = chart.scales.y.getPixelForValue(priceValues[bestChargingStretch.index]) - 20;
 
     // Ensure label stays within chart bounds
     const labelWidth = 50; // Approximate width of label with time + icon
@@ -514,14 +547,14 @@ function RollingLineChart({
     setLabelPosition({
       x,
       y,
-      time: nextGoingDown.time
+      time: bestChargingStretch.time
     });
 
     // Fade in label after a short delay
     setTimeout(() => {
       setLabelVisible(true);
     }, 300);
-  }, [internalChartRef.current, nextGoingDown, priceValues]);
+  }, [internalChartRef.current, bestChargingStretch, priceValues]);
 
   // Update active line annotation when hovering without recreating chart
   useEffect(() => {

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ArrowDownRight } from 'lucide-react';
 import {
   fetchTodayAndTomorrowPrices,
   PriceInterval,
@@ -161,6 +161,8 @@ function RollingLineChart({
   const [activeIndexInWindow, setActiveIndexInWindow] = useState<number | null>(null);
   const [activeLineOpacity, setActiveLineOpacity] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [labelPosition, setLabelPosition] = useState<{ x: number; y: number; time: string } | null>(null);
+  const [labelVisible, setLabelVisible] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalChartRef = useRef<ChartJS | null>(null);
   const isTouchingRef = useRef(false);
@@ -242,6 +244,27 @@ function RollingLineChart({
     currentIndex - windowStartIndex
   , [currentIndex, windowStartIndex]);
 
+  // Find next "going down" transition (to cheap/green) in future
+  const nextGoingDown = useMemo(() => {
+    const startIndex = currentIndexInWindow + 1;
+    if (startIndex >= windowIntervals.length) return null;
+
+    for (let i = startIndex; i < windowIntervals.length; i++) {
+      const prevPrice = priceValues[i - 1];
+      const currPrice = priceValues[i];
+      const prevCategory = prevPrice < avgPrice * 0.85 ? 'green' : prevPrice >= avgPrice * 1.15 ? 'red' : 'yellow';
+      const currCategory = currPrice < avgPrice * 0.85 ? 'green' : currPrice >= avgPrice * 1.15 ? 'red' : 'yellow';
+
+      if ((prevCategory === 'red' || prevCategory === 'yellow') && currCategory === 'green') {
+        const time = new Date(windowIntervals[i].time_start);
+        const h = String(time.getHours()).padStart(2, '0');
+        const m = String(time.getMinutes()).padStart(2, '0');
+        return { index: i, time: `${h}:${m}` };
+      }
+    }
+    return null;
+  }, [windowIntervals, priceValues, avgPrice, currentIndexInWindow]);
+
   // Keep ref updated
   useEffect(() => {
     currentIndexInWindowRef.current = currentIndexInWindow;
@@ -253,6 +276,8 @@ function RollingLineChart({
     if (internalChartRef.current) {
       internalChartRef.current.destroy();
     }
+
+    setLabelVisible(false);
 
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
@@ -458,6 +483,46 @@ function RollingLineChart({
     };
   }, [windowStartIndex, windowEndIndex, windowIntervals, yAxisMin, yAxisMax, yAxisStep, avgPrice]);
 
+  // Calculate label position after chart render
+  useEffect(() => {
+    if (!internalChartRef.current || !nextGoingDown) {
+      setLabelPosition(null);
+      setLabelVisible(false);
+      return;
+    }
+
+    const chart = internalChartRef.current;
+    const chartArea = chart.chartArea;
+
+    let x = chart.scales.x.getPixelForValue(nextGoingDown.index);
+    let y = chart.scales.y.getPixelForValue(priceValues[nextGoingDown.index]) - 20;
+
+    // Ensure label stays within chart bounds
+    const labelWidth = 50; // Approximate width of label with time + icon
+    const labelHeight = 20; // Approximate height
+
+    if (x - labelWidth / 2 < chartArea.left) {
+      x = chartArea.left + labelWidth / 2;
+    } else if (x + labelWidth / 2 > chartArea.right) {
+      x = chartArea.right - labelWidth / 2;
+    }
+
+    if (y - labelHeight < chartArea.top) {
+      y = chartArea.top + labelHeight;
+    }
+
+    setLabelPosition({
+      x,
+      y,
+      time: nextGoingDown.time
+    });
+
+    // Fade in label after a short delay
+    setTimeout(() => {
+      setLabelVisible(true);
+    }, 300);
+  }, [internalChartRef.current, nextGoingDown, priceValues]);
+
   // Update active line annotation when hovering without recreating chart
   useEffect(() => {
     if (!internalChartRef.current) return;
@@ -606,6 +671,25 @@ function RollingLineChart({
     };
   }, [activeIndexInWindow]);
 
-  return <canvas ref={canvasRef} style={{ touchAction: 'none' }} />;
+  return (
+    <div className="relative w-full h-full">
+      <canvas ref={canvasRef} style={{ touchAction: 'none' }} />
+      {labelPosition && (
+        <div
+          className="absolute flex items-center gap-1 px-[6px] py-[3px] rounded text-white text-[11px] font-normal pointer-events-none transition-opacity duration-300"
+          style={{
+            left: `${labelPosition.x}px`,
+            top: `${labelPosition.y}px`,
+            transform: 'translate(-50%, -100%)',
+            backgroundColor: '#009A33',
+            opacity: labelVisible ? 1 : 0
+          }}
+        >
+          <span>{labelPosition.time}</span>
+          <ArrowDownRight className="w-3 h-3" />
+        </div>
+      )}
+    </div>
+  );
 }
 

@@ -16,6 +16,7 @@ import {
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { PriceInterval, formatTimeRange, getCurrentPriceInterval } from '@/lib/electricity-api';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -186,6 +187,9 @@ function InteractiveChart({
   onResetRef
 }: InteractiveChartProps) {
 
+  const [labelPositions, setLabelPositions] = useState<Array<{ x: number; y: number; type: 'up' | 'down'; time: string }>>([]);
+  const [labelsVisible, setLabelsVisible] = useState(false);
+
   // Calculate prices and stats
   const prices = useMemo(() => priceData.map(item => item.SEK_per_kWh * 100), [priceData]);
   const avgPrice = useMemo(() => prices.reduce((a, b) => a + b, 0) / prices.length, [prices]);
@@ -337,6 +341,8 @@ function InteractiveChart({
       chartRef.current.destroy();
     }
 
+    setLabelsVisible(false);
+
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
@@ -367,33 +373,7 @@ function InteractiveChart({
       };
     }
 
-    // Add smart labels with edge detection
-    smartLabels.forEach((label, idx) => {
-      const isNearStart = label.index < 8;
-      const isNearEnd = label.index > priceData.length - 15;
-
-      // Adjust position to prevent cutoff at edges
-      let xAdjust = 0;
-      if (isNearStart) {
-        xAdjust = 25; // Push right if near start
-      } else if (isNearEnd) {
-        xAdjust = -25; // Push left if near end
-      }
-
-      annotations[`label_${idx}`] = {
-        type: 'label',
-        xValue: label.index,
-        yValue: prices[label.index],
-        backgroundColor: label.type === 'up' ? '#D73333' : '#009A33',
-        color: '#FFFFFF',
-        content: label.time,
-        font: { size: 11 },
-        padding: { top: 3, bottom: 3, left: 6, right: 6 },
-        borderRadius: 4,
-        position: 'start',
-        xAdjust: xAdjust
-      };
-    });
+    // Note: Smart labels now rendered as DOM elements (see label rendering below chart canvas)
 
     const chart = new ChartJS(canvasRef.current, {
       type: 'line',
@@ -530,6 +510,51 @@ function InteractiveChart({
     };
   }, [priceData, prices, avgPrice, currentIndex, smartLabels, yAxisMin, yAxisMax, yAxisStep, selectedDay]);
 
+  // Calculate label positions after chart render
+  useEffect(() => {
+    if (!chartRef.current || smartLabels.length === 0) {
+      setLabelPositions([]);
+      setLabelsVisible(false);
+      return;
+    }
+
+    const chart = chartRef.current;
+    const chartArea = chart.chartArea;
+
+    const positions = smartLabels.map(label => {
+      let x = chart.scales.x.getPixelForValue(label.index);
+      let y = chart.scales.y.getPixelForValue(prices[label.index]) - 20;
+
+      // Ensure label stays within chart bounds (with padding for label width ~40px)
+      const labelWidth = 50; // Approximate width of label with time + icon
+      const labelHeight = 20; // Approximate height
+
+      if (x - labelWidth / 2 < chartArea.left) {
+        x = chartArea.left + labelWidth / 2;
+      } else if (x + labelWidth / 2 > chartArea.right) {
+        x = chartArea.right - labelWidth / 2;
+      }
+
+      if (y - labelHeight < chartArea.top) {
+        y = chartArea.top + labelHeight;
+      }
+
+      return {
+        x,
+        y,
+        type: label.type,
+        time: label.time
+      };
+    });
+
+    setLabelPositions(positions);
+
+    // Fade in labels after a short delay
+    setTimeout(() => {
+      setLabelsVisible(true);
+    }, 300);
+  }, [chartRef.current, smartLabels, prices]);
+
   // Update active line annotation
   useEffect(() => {
     if (!chartRef.current) return;
@@ -575,13 +600,35 @@ function InteractiveChart({
   }, [animationFrameRef]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerLeave}
-      onPointerCancel={handlePointerCancel}
-      style={{ touchAction: 'none' }}
-    />
+    <div className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onPointerCancel={handlePointerCancel}
+        style={{ touchAction: 'none' }}
+      />
+      {labelPositions.map((label, idx) => (
+        <div
+          key={idx}
+          className="absolute flex items-center gap-1 px-[6px] py-[3px] rounded text-white text-[11px] font-normal pointer-events-none transition-opacity duration-300"
+          style={{
+            left: `${label.x}px`,
+            top: `${label.y}px`,
+            transform: 'translate(-50%, -100%)',
+            backgroundColor: label.type === 'up' ? '#D73333' : '#009A33',
+            opacity: labelsVisible ? 1 : 0
+          }}
+        >
+          <span>{label.time}</span>
+          {label.type === 'up' ? (
+            <ArrowUpRight className="w-3 h-3" />
+          ) : (
+            <ArrowDownRight className="w-3 h-3" />
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
